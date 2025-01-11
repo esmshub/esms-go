@@ -1,7 +1,8 @@
-package engine
+package config
 
 import (
-	"github.com/esmshub/esms-go/engine/common"
+	"slices"
+	"strings"
 )
 
 var (
@@ -20,12 +21,6 @@ var (
 	TACTIC_PASSING   = "Passing"
 )
 
-type Options struct {
-	HomeBonus       int
-	MatchType       common.MATCHTYPE
-	EnableExtraTime bool
-}
-
 var TacticNames = map[string]string{
 	"C": TACTIC_COUNTER,
 	"A": TACTIC_ATTACKING,
@@ -43,4 +38,10 @@ var ValidPositions = []string{
 	POSITION_MF,
 	POSITION_AM,
 	POSITION_FW,
+}
+
+func IsValidPosition(position string) bool {
+	return slices.ContainsFunc(ValidPositions, func(pos string) bool {
+		return strings.EqualFold(position, pos)
+	})
 }

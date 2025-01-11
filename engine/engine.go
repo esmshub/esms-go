@@ -1,6 +1,10 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/esmshub/esms-go/engine/models"
+)
 
 type MinuteElapsedHandler func(int)
 
@@ -37,11 +41,15 @@ func runHalf(minuteElapsedHandler MinuteElapsedHandler) {
 	}
 }
 
-func Run() {
+func Run(match *models.Match, options *Options) {
+	// errors := match.HomeTeam.Validate()
+	// errors = append(errors, match.AwayTeam.Validate()...)
+	// zap.L().Info("Running fixture", zap.Any("fixture", fixture), zap.Any("options", options))
+	// validate fixtureset
+
 	// homeTeam := Team{}
 	// awayTeam := Team{}
 
-	// load config
 	// load teamsheets
 	// load rosters
 	// load tactics
@@ -51,14 +59,16 @@ func Run() {
 	*gameMinute = 0
 
 	fmt.Println("---------- Kick off ----------")
-	runHalf(func(i int) {
-		*gameMinute++
-		fmt.Println("Minute elapsed:", *gameMinute)
-	})
-	fmt.Println("---------- Half time ----------")
-	runHalf(func(i int) {
-		*gameMinute++
-		fmt.Println("Minute elapsed:", *gameMinute)
-	})
-	fmt.Println("---------- Full time ----------")
+	fmt.Println("Home bonus:", options.HomeBonus)
+	fmt.Println("Match type:", options.MatchType)
+	// runHalf(func(i int) {
+	// 	*gameMinute++
+	// 	fmt.Println("Minute elapsed:", *gameMinute)
+	// })
+	// fmt.Println("---------- Half time ----------")
+	// runHalf(func(i int) {
+	// 	*gameMinute++
+	// 	fmt.Println("Minute elapsed:", *gameMinute)
+	// })
+	// fmt.Println("---------- Full time ----------")
 }
