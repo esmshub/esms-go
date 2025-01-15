@@ -17,16 +17,20 @@ func (p *Player) GetIsSuspended() bool {
 	return p.Stats.GamesSuspended > 0
 }
 
-type PlayerAbilities struct {
-	Goalkeeping    int
-	Tackling       int
-	Passing        int
-	Shooting       int
-	Aggression     int
+type PlayerAbilityPoints struct {
 	GoalkeepingAbs int
 	TacklingAbs    int
 	PassingAbs     int
 	ShootingAbs    int
+}
+
+type PlayerAbilities struct {
+	Goalkeeping int
+	Tackling    int
+	Passing     int
+	Shooting    int
+	Aggression  int
+	PlayerAbilityPoints
 }
 
 type PlayerStats struct {
@@ -46,8 +50,22 @@ type PlayerStats struct {
 	GamesSuspended     int
 }
 
+type PlayerGameStats struct {
+	MinutesPlayed int
+	IsMom         bool
+	Saves         int // GK only
+	KeyTackles    int
+	KeyPasses     int
+	Assists       int
+	Shots         int
+	Goals         int
+	IsCautioned   bool
+	IsSentOff     bool
+}
+
 type PlayerPosition struct {
-	Position string
-	Name     string
-	Stats    *PlayerStats
+	Position  string
+	Name      string
+	Abilities *PlayerAbilities
+	Stats     *PlayerGameStats
 }

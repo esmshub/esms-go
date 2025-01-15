@@ -25,23 +25,49 @@ type Config interface {
 var LeagueConfigSupportedFormats = []string{".yaml", ".json", ".dat"}
 
 const DefaultLeagueConfigFileName = "league"
+const DefaultMatchReportOutputFileExt = ".txt"
 
 var LeagueConfig Config = viper.New()
 
 func init() {
+	exePath, err := os.Executable()
+	if err != nil {
+		zap.L().Error("unable to get current working directory", zap.Error(err))
+	}
+
 	conf := LeagueConfig.(*viper.Viper)
-	conf.SetDefault("home_bonus", 30)
-	conf.SetDefault("extra_time", false)
-	conf.SetDefault("min_subs", 3)
-	conf.SetDefault("bench_size", 7)
-	conf.SetDefault("min_df", 3)
-	conf.SetDefault("max_df", 5)
-	conf.SetDefault("max_dm", 3)
-	conf.SetDefault("min_mf", 1)
-	conf.SetDefault("max_mf", 6)
-	conf.SetDefault("max_am", 3)
-	conf.SetDefault("min_fw", 0)
-	conf.SetDefault("max_fw", 4)
+	conf.SetDefault("name", "ESMS League")
+	conf.SetDefault("paths.roster_dir", exePath)
+	conf.SetDefault("paths.fixtureset_dir", exePath)
+	conf.SetDefault("paths.teamsheet_dir", exePath)
+	conf.SetDefault("paths.output_dir", exePath)
+	conf.SetDefault("match.home_bonus", 30)
+	conf.SetDefault("match.extra_time", false)
+	conf.SetDefault("match.min_subs", 3)
+	conf.SetDefault("match.max_subs", 7)
+	conf.SetDefault("match.min_df", 3)
+	conf.SetDefault("match.max_df", 5)
+	conf.SetDefault("match.max_dm", 3)
+	conf.SetDefault("match.min_mf", 1)
+	conf.SetDefault("match.max_mf", 6)
+	conf.SetDefault("match.max_am", 3)
+	conf.SetDefault("match.min_fw", 0)
+	conf.SetDefault("match.max_fw", 4)
+	// legacy support
+	conf.RegisterAlias("games", "name")
+	conf.RegisterAlias("abbreviations", "teams")
+	conf.RegisterAlias("home_bonus", "match.home_bonus")
+	conf.RegisterAlias("extra_time", "match.extra_time")
+	conf.RegisterAlias("min_subs", "match.min_subs")
+	conf.RegisterAlias("bench_size", "match.bench_size")
+	conf.RegisterAlias("min_df", "match.min_df")
+	conf.RegisterAlias("max_df", "match.max_df")
+	conf.RegisterAlias("max_dm", "match.max_dm")
+	conf.RegisterAlias("min_mf", "match.min_mf")
+	conf.RegisterAlias("max_mf", "match.max_mf")
+	conf.RegisterAlias("max_am", "match.max_am")
+	conf.RegisterAlias("min_fw", "match.min_fw")
+	conf.RegisterAlias("max_fw", "match.max_fw")
 }
 
 func LoadNearestLeagueConfig() error {

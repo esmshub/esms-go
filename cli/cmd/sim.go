@@ -6,10 +6,12 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/esmshub/esms-go/engine"
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/internal/config"
+	"github.com/esmshub/esms-go/internal/store"
 	"github.com/esmshub/esms-go/pkg/utils"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -17,6 +19,7 @@ import (
 
 var (
 	fixtureSetFilePath string
+	rngSeed            uint64
 )
 
 // runCmd represents the run command
@@ -57,18 +60,20 @@ to quickly create a Cobra application.`,
 		}
 
 		opts := &engine.Options{
-			HomeBonus:       config.LeagueConfig.GetInt("home_bonus"),
-			EnableExtraTime: config.LeagueConfig.GetBool("extra_time"),
+			HomeBonus:       config.LeagueConfig.GetInt("match.home_bonus"),
+			EnableExtraTime: config.LeagueConfig.GetBool("match.extra_time"),
+			RngSeed:         rngSeed,
 		}
+		zap.L().Info("config", zap.Any("config", config.LeagueConfig.AllSettings()))
 		for _, f := range fixtureSet.Fixtures {
 			// resolve config paths
 			if f.HomeTeamCode != "" {
-				f.HomeTeamsheet = fmt.Sprintf("%ssht.%s", filepath.Join(config.Cli.GetString("paths.teamsheet_dir"), f.HomeTeamCode), config.DefaultTeamsheetFileExt)
-				f.HomeRoster = fmt.Sprintf("%s.%s", filepath.Join(config.Cli.GetString("paths.roster_dir"), f.HomeTeamCode), config.DefaultRosterFileExt)
+				f.HomeTeamsheet = fmt.Sprintf("%ssht%s", filepath.Join(config.LeagueConfig.GetString("paths.teamsheet_dir"), f.HomeTeamCode), config.DefaultTeamsheetFileExt)
+				f.HomeRoster = fmt.Sprintf("%s%s", filepath.Join(config.LeagueConfig.GetString("paths.roster_dir"), f.HomeTeamCode), config.DefaultRosterFileExt)
 			}
 			if f.AwayTeamCode != "" {
-				f.AwayTeamsheet = fmt.Sprintf("%ssht.%s", filepath.Join(config.Cli.GetString("paths.teamsheet_dir"), f.AwayTeamCode), config.DefaultTeamsheetFileExt)
-				f.AwayRoster = fmt.Sprintf("%s.%s", filepath.Join(config.Cli.GetString("paths.roster_dir"), f.AwayTeamCode), config.DefaultRosterFileExt)
+				f.AwayTeamsheet = fmt.Sprintf("%ssht%s", filepath.Join(config.LeagueConfig.GetString("paths.teamsheet_dir"), f.AwayTeamCode), config.DefaultTeamsheetFileExt)
+				f.AwayRoster = fmt.Sprintf("%s%s", filepath.Join(config.LeagueConfig.GetString("paths.roster_dir"), f.AwayTeamCode), config.DefaultRosterFileExt)
 			}
 			fixturesetDir := filepath.Dir(fixtureSetFilePath)
 			if !filepath.IsAbs(f.HomeTeamsheet) {
@@ -85,16 +90,33 @@ to quickly create a Cobra application.`,
 			}
 			// load teams / rosters
 			homeTeam := utils.Must(config.LoadTeamConfig(f.HomeTeamsheet, f.HomeRoster))
+			homeTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[homeTeam.Code].(string)
+			homeTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[homeTeam.Code].(string)
+			homeTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[homeTeam.Code].(string)
+			homeTeam.StadiumCapacity = utils.Must(strconv.Atoi(config.LeagueConfig.Get("stadium_capacity").(map[string]any)[homeTeam.Code].(string)))
 			awayTeam := utils.Must(config.LoadTeamConfig(f.AwayTeamsheet, f.AwayRoster))
+			awayTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[awayTeam.Code].(string)
+			awayTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[awayTeam.Code].(string)
+			awayTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[awayTeam.Code].(string)
+			awayTeam.StadiumCapacity = utils.Must(strconv.Atoi(config.LeagueConfig.Get("stadium_capacity").(map[string]any)[awayTeam.Code].(string)))
 			match := &models.Match{
 				HomeTeam: homeTeam,
 				AwayTeam: awayTeam,
 			}
 
 			zap.L().Info("running fixture", zap.Any("fixture", f))
-			engine.Run(match, opts)
+			result := engine.Run(match, opts)
+			fileStore := store.MatchResultFileStore{}
+			err := fileStore.Save(result, store.MatchResultFileStoreOptions{
+				LeagueName: config.LeagueConfig.GetString("name"),
+				OutputFile: filepath.Join(config.LeagueConfig.GetString("paths.output_dir"), fmt.Sprintf("%s_%s%s", homeTeam.Code, awayTeam.Code, config.DefaultMatchReportOutputFileExt)),
+				RngSeed:    result.RngSeed,
+			})
+			if err != nil {
+				zap.L().Error("unable to save match result", zap.Error(err))
+			}
+			fmt.Println("------------------------------")
 		}
-		fmt.Println("run called")
 		return nil
 	},
 }
@@ -103,6 +125,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.Flags().StringVarP(&fixtureSetFilePath, "fixture-set", "f", "", "Path to fixture set file")
+	runCmd.Flags().Uint64VarP(&rngSeed, "rng-seed", "s", 0, "Seed for random number generator")
 
 	runCmd.MarkFlagRequired("fixture-set")
 	// Here you will define your flags and configuration settings.

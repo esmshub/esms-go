@@ -5,15 +5,19 @@ import "github.com/esmshub/esms-go/engine/pkg/utils"
 type Validator func(TeamConfig) error
 
 type TeamConfig struct {
-	validators   []Validator
-	Name         string
-	Formation    string
-	Tactic       string
-	Lineup       []*Player
-	Subs         []*Player
-	Roster       []*Player
-	PlayerRoles  map[string]*Player
-	Conditionals []*Conditional
+	validators      []Validator
+	Name            string
+	Code            string
+	ManagerName     string
+	StadiumName     string
+	StadiumCapacity int
+	Formation       string
+	Tactic          string
+	Lineup          []*PlayerPosition
+	Subs            []*PlayerPosition
+	Roster          []*Player
+	PlayerRoles     map[string]*PlayerPosition
+	Conditionals    []*Conditional
 }
 
 func (r *TeamConfig) Validate() []error {

@@ -24,6 +24,7 @@ type Options struct {
 	HomeBonus       int
 	MatchType       common.MATCHTYPE
 	EnableExtraTime bool
+	RngSeed         uint64
 }
 
 var TacticNames = map[string]string{

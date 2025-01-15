@@ -1,6 +1,6 @@
 module github.com/esmshub/esms-go
 
-go 1.21.6
+go 1.23.4
 
 require (
 	github.com/esmshub/esms-go/engine v0.0.0-alpha

@@ -20,7 +20,7 @@ func readTactic(config *models.TeamConfig, text string) error {
 	}
 
 	if len(lines) > 1 {
-		config.Name = lines[0]
+		config.Code = lines[0]
 		config.Tactic = lines[1]
 	} else {
 		config.Tactic = lines[0]
@@ -33,7 +33,7 @@ func readTactic(config *models.TeamConfig, text string) error {
 	return nil
 }
 
-func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(string) *models.Player) (*models.Player, error) {
+func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(string) *models.Player) (*models.PlayerPosition, error) {
 	parts := strings.Fields(text)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("player data format '%s' is not valid", text)
@@ -60,7 +60,17 @@ func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(strin
 		}
 
 		player.Position = pos
-		return player, nil
+		abs := *player.Abilities
+		abs.GoalkeepingAbs = 0
+		abs.TacklingAbs = 0
+		abs.PassingAbs = 0
+		abs.ShootingAbs = 0
+		return &models.PlayerPosition{
+			Name:      name,
+			Position:  pos,
+			Stats:     &models.PlayerGameStats{},
+			Abilities: &abs,
+		}, nil
 	} else {
 		return nil, fmt.Errorf("player %s does not exist in the roster", name)
 	}
@@ -69,7 +79,7 @@ func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(strin
 func readLineup(config *models.TeamConfig, text string, findPlayer func(string) *models.Player) error {
 	zap.L().Debug("reading lineup")
 
-	config.Lineup = []*models.Player{}
+	config.Lineup = []*models.PlayerPosition{}
 	lines := strings.Split(text, "\n")
 	playerCount := len(lines)
 	if playerCount != 11 {
@@ -90,7 +100,7 @@ func readLineup(config *models.TeamConfig, text string, findPlayer func(string) 
 func readSubstitutions(config *models.TeamConfig, text string, minSubs int, maxSubs int, findPlayer func(string) *models.Player) error {
 	zap.L().Debug("reading subs")
 
-	config.Subs = []*models.Player{}
+	config.Subs = []*models.PlayerPosition{}
 	lines := strings.Split(text, "\n")
 	subCount := len(lines)
 	if subCount < minSubs {
@@ -118,7 +128,7 @@ func readPenaltyTaker(config *models.TeamConfig, text string) error {
 	}
 
 	pk := strings.TrimSpace(lines[1])
-	nameComparer := func(p *models.Player) bool {
+	nameComparer := func(p *models.PlayerPosition) bool {
 		return strings.EqualFold(p.Name, pk)
 	}
 	i := slices.IndexFunc(config.Lineup, nameComparer)
@@ -130,37 +140,37 @@ func readPenaltyTaker(config *models.TeamConfig, text string) error {
 	return nil
 }
 
-func validateFormation(team *models.TeamConfig) error {
+func validateFormation(config *models.TeamConfig) error {
 	positionCount := make(map[string]int)
-	for _, p := range team.Lineup {
+	for _, p := range config.Lineup {
 		positionCount[p.Position]++
 	}
 	defMids := positionCount[POSITION_DM]
 	mids := positionCount[POSITION_MF]
 	attMids := positionCount[POSITION_AM]
 
-	if positionCount[POSITION_DF] < LeagueConfig.GetInt("min_df") {
-		return fmt.Errorf("cannot field less than %d %ss", LeagueConfig.GetInt("min_df"), POSITION_DF)
-	} else if positionCount[POSITION_DF] > LeagueConfig.GetInt("max_df") {
-		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("max_df"), POSITION_DF)
-	} else if positionCount[POSITION_DM] > LeagueConfig.GetInt("max_dm") {
-		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("max_dm"), POSITION_DM)
-	} else if positionCount[POSITION_MF] > LeagueConfig.GetInt("max_mf") {
-		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("max_mf"), POSITION_MF)
-	} else if positionCount[POSITION_AM] > LeagueConfig.GetInt("max_am") {
-		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("max_am"), POSITION_AM)
-	} else if (mids + defMids + attMids) < LeagueConfig.GetInt("min_mf") {
-		return fmt.Errorf("cannot field less than %d midfielders", LeagueConfig.GetInt("min_mf"))
-	} else if (mids + defMids + attMids) > LeagueConfig.GetInt("max_mf") {
-		return fmt.Errorf("cannot field more than %d midfielders", LeagueConfig.GetInt("max_mf"))
-	} else if positionCount[POSITION_FW] < LeagueConfig.GetInt("min_fw") {
-		return fmt.Errorf("cannot field less than %d %ss", LeagueConfig.GetInt("min_fw"), POSITION_FW)
-	} else if positionCount[POSITION_FW] > LeagueConfig.GetInt("max_fw") {
-		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("max_fw"), POSITION_FW)
+	if positionCount[POSITION_DF] < LeagueConfig.GetInt("match.min_df") {
+		return fmt.Errorf("cannot field less than %d %ss", LeagueConfig.GetInt("match.min_df"), POSITION_DF)
+	} else if positionCount[POSITION_DF] > LeagueConfig.GetInt("match.max_df") {
+		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("match.max_df"), POSITION_DF)
+	} else if positionCount[POSITION_DM] > LeagueConfig.GetInt("match.max_dm") {
+		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("match.max_dm"), POSITION_DM)
+	} else if positionCount[POSITION_MF] > LeagueConfig.GetInt("match.max_mf") {
+		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("match.max_mf"), POSITION_MF)
+	} else if positionCount[POSITION_AM] > LeagueConfig.GetInt("match.max_am") {
+		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("match.max_am"), POSITION_AM)
+	} else if (mids + defMids + attMids) < LeagueConfig.GetInt("match.min_mf") {
+		return fmt.Errorf("cannot field less than %d midfielders", LeagueConfig.GetInt("match.min_mf"))
+	} else if (mids + defMids + attMids) > LeagueConfig.GetInt("match.max_mf") {
+		return fmt.Errorf("cannot field more than %d midfielders", LeagueConfig.GetInt("match.max_mf"))
+	} else if positionCount[POSITION_FW] < LeagueConfig.GetInt("match.min_fw") {
+		return fmt.Errorf("cannot field less than %d %ss", LeagueConfig.GetInt("match.min_fw"), POSITION_FW)
+	} else if positionCount[POSITION_FW] > LeagueConfig.GetInt("match.max_fw") {
+		return fmt.Errorf("cannot field more than %d %ss", LeagueConfig.GetInt("match.max_fw"), POSITION_FW)
 	}
 
-	formationStr := fmt.Sprintf("%d-%d-%d-%d-%d", positionCount[POSITION_DF], defMids, mids, attMids, positionCount[POSITION_FW])
-	team.Formation = strings.ReplaceAll(formationStr, "-0", "")
+	formationStr := fmt.Sprintf("%d-%d-%d-%d-%d %s", positionCount[POSITION_DF], defMids, mids, attMids, positionCount[POSITION_FW], config.Tactic)
+	config.Formation = strings.ReplaceAll(formationStr, "-0", "")
 
 	return nil
 }
@@ -222,7 +232,7 @@ func LoadLegacyTeamsheet(teamsheetFile string, findPlayer func(string) *models.P
 	}
 
 	config := &models.TeamConfig{
-		PlayerRoles: make(map[string]*models.Player),
+		PlayerRoles: make(map[string]*models.PlayerPosition),
 	}
 	if err := readTactic(config, sections[0]); err != nil {
 		return nil, err
@@ -231,7 +241,7 @@ func LoadLegacyTeamsheet(teamsheetFile string, findPlayer func(string) *models.P
 	if err := readLineup(config, sections[1], findPlayer); err != nil {
 		return nil, err
 	}
-	if err := readSubstitutions(config, sections[2], LeagueConfig.GetInt("min_subs"), LeagueConfig.GetInt("bench_size"), findPlayer); err != nil {
+	if err := readSubstitutions(config, sections[2], LeagueConfig.GetInt("match.min_subs"), LeagueConfig.GetInt("match.max_subs"), findPlayer); err != nil {
 		return nil, err
 	}
 	if err := readPenaltyTaker(config, sections[3]); err != nil {

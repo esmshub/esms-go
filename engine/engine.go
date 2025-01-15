@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/esmshub/esms-go/engine/models"
+	"github.com/esmshub/esms-go/engine/pkg/rng"
+	"go.uber.org/zap"
 )
 
 type MinuteElapsedHandler func(int)
@@ -41,7 +43,19 @@ func runHalf(minuteElapsedHandler MinuteElapsedHandler) {
 	}
 }
 
-func Run(match *models.Match, options *Options) {
+func Run(match *models.Match, options *Options) *models.MatchResult {
+	if options.RngSeed != 0 {
+		// seed random number generator
+		zap.L().Info("Seeding RNG", zap.Uint64("seed", options.RngSeed))
+		rng.Seed(options.RngSeed)
+	}
+	if match.Referee == nil {
+		zap.L().Info("No referee assigned, using default")
+		match.Referee = &models.Referee{
+			Name: "Perluigi Collina",
+			Nat:  "Italian",
+		}
+	}
 	// errors := match.HomeTeam.Validate()
 	// errors = append(errors, match.AwayTeam.Validate()...)
 	// zap.L().Info("Running fixture", zap.Any("fixture", fixture), zap.Any("options", options))
@@ -71,4 +85,10 @@ func Run(match *models.Match, options *Options) {
 	// 	fmt.Println("Minute elapsed:", *gameMinute)
 	// })
 	// fmt.Println("---------- Full time ----------")
+	return &models.MatchResult{
+		HomeTeam: match.HomeTeam,
+		AwayTeam: match.AwayTeam,
+		Referee:  match.Referee,
+		RngSeed:  rng.GetSeed(),
+	}
 }

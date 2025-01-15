@@ -18,9 +18,6 @@ func init() {
 		zap.L().Error("unable to get current working directory", zap.Error(err))
 	}
 	conf := Cli.(*viper.Viper)
-	conf.SetDefault("paths.roster_dir", exePath)
-	conf.SetDefault("paths.fixtureset_dir", exePath)
-	conf.SetDefault("paths.teamsheet_dir", exePath)
 	conf.SetDefault("paths.config_dir", exePath)
 }
 
