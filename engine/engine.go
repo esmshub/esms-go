@@ -5,10 +5,44 @@ import (
 
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/engine/pkg/rng"
+	"github.com/esmshub/esms-go/engine/types"
+	"github.com/esmshub/esms-go/engine/validators"
 	"go.uber.org/zap"
 )
 
 type MinuteElapsedHandler func(int)
+
+func updateTeamAttrs(config *models.TeamConfig, tactics *models.TacticsMatrix) {
+	config.TeamAbility.Goalkeeping = 0
+	config.TeamAbility.Tackling = 0
+	config.TeamAbility.Passing = 0
+	config.TeamAbility.Shooting = 0
+
+	players := append(config.Lineup, config.Subs...)
+	for _, p := range players {
+		if p.IsActive {
+			if p.Position == types.POSITION_GK {
+				p.Ability.Goalkeeping = p.BaseAbility.Goalkeeping
+				config.TeamAbility.Goalkeeping += p.Ability.Goalkeeping
+			} else if tactics != nil {
+				matrix := (*tactics)[fmt.Sprintf("%s_%s", config.Tactic, p.Position)]
+				p.Ability.Tackling = int((matrix[0] * float64(p.BaseAbility.Tackling)) * p.Fatigue)
+				p.Ability.Passing = int((matrix[1] * float64(p.BaseAbility.Passing)) * p.Fatigue)
+				p.Ability.Shooting = int((matrix[2] * float64(p.BaseAbility.Shooting)) * p.Fatigue)
+
+				// update cumulative stats
+				config.TeamAbility.Tackling += p.Ability.Tackling
+				config.TeamAbility.Passing += p.Ability.Passing
+				config.TeamAbility.Shooting += p.Ability.Shooting
+			}
+		} else {
+			p.Ability.Goalkeeping = 0
+			p.Ability.Tackling = 0
+			p.Ability.Passing = 0
+			p.Ability.Shooting = 0
+		}
+	}
+}
 
 func runHalf(minuteElapsedHandler MinuteElapsedHandler) {
 	for i := 0; i < 45; i++ {
@@ -43,7 +77,7 @@ func runHalf(minuteElapsedHandler MinuteElapsedHandler) {
 	}
 }
 
-func Run(match *models.Match, options *Options) *models.MatchResult {
+func Run(match *models.Match, options *Options) (*models.MatchResult, error) {
 	if options.RngSeed != 0 {
 		// seed random number generator
 		zap.L().Info("Seeding RNG", zap.Uint64("seed", options.RngSeed))
@@ -56,24 +90,29 @@ func Run(match *models.Match, options *Options) *models.MatchResult {
 			Nat:  "Italian",
 		}
 	}
+
+	validator := validators.NewTeamConfigValidator(options.AppConfig)
+	if err := validator.Validate(match.HomeTeam); err != nil {
+		return nil, err
+	}
+	if err := validator.Validate(match.AwayTeam); err != nil {
+		return nil, err
+	}
+
+	// initialize team attributes
+	updateTeamAttrs(match.HomeTeam, options.TacticsMatrix)
+	updateTeamAttrs(match.AwayTeam, options.TacticsMatrix)
+
 	// errors := match.HomeTeam.Validate()
 	// errors = append(errors, match.AwayTeam.Validate()...)
 	// zap.L().Info("Running fixture", zap.Any("fixture", fixture), zap.Any("options", options))
 	// validate fixtureset
 
-	// homeTeam := Team{}
-	// awayTeam := Team{}
-
-	// load teamsheets
-	// load rosters
-	// load tactics
-	// init team / player data
-
 	var gameMinute *int = new(int)
 	*gameMinute = 0
 
 	fmt.Println("---------- Kick off ----------")
-	fmt.Println("Home bonus:", options.HomeBonus)
+	fmt.Println("Home bonus:", options.AppConfig["home_bonus"])
 	fmt.Println("Match type:", options.MatchType)
 	// runHalf(func(i int) {
 	// 	*gameMinute++
@@ -90,5 +129,5 @@ func Run(match *models.Match, options *Options) *models.MatchResult {
 		AwayTeam: match.AwayTeam,
 		Referee:  match.Referee,
 		RngSeed:  rng.GetSeed(),
-	}
+	}, nil
 }

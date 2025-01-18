@@ -82,7 +82,7 @@ func LoadRoster(filePath string) ([]*models.Player, error) {
 			Name: values[findIndex(attrNames, "name")],
 			Age:  atoi(values[findIndex(attrNames, "age")]),
 			Nat:  values[findIndex(attrNames, "nat")],
-			Abilities: &models.PlayerAbilities{
+			Ability: &models.PlayerAbilities{
 				Goalkeeping: atoi(values[findIndex(attrNames, "st")]),
 				Tackling:    atoi(values[findIndex(attrNames, "tk")]),
 				Passing:     atoi(values[findIndex(attrNames, "ps")]),

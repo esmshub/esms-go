@@ -1,11 +1,10 @@
 package models
 
-import "github.com/esmshub/esms-go/engine/pkg/utils"
-
-type Validator func(TeamConfig) error
+import (
+	"github.com/esmshub/esms-go/engine/internal/formulas"
+)
 
 type TeamConfig struct {
-	validators      []Validator
 	Name            string
 	Code            string
 	ManagerName     string
@@ -18,12 +17,17 @@ type TeamConfig struct {
 	Roster          []*Player
 	PlayerRoles     map[string]*PlayerPosition
 	Conditionals    []*Conditional
+	TeamAbility     *PlayerAbilities
+	ShotProbability float64
 }
 
-func (r *TeamConfig) Validate() []error {
-	return utils.Reduce(r.validators, func(results []error, v Validator) []error {
-		return append(results, v(*r))
-	}, []error{})
+func (r *TeamConfig) GetShotProbability(oppositionAbility *PlayerAbilities) float64 {
+	return formulas.CalcShotProbability(
+		float64(r.TeamAbility.Aggression),
+		float64(r.TeamAbility.Shooting),
+		float64(r.TeamAbility.Passing),
+		float64(oppositionAbility.Tackling),
+	)
 }
 
 func (r *TeamConfig) GetInjuredPlayers() []*Player {
@@ -44,4 +48,21 @@ func (r *TeamConfig) GetSuspendedPlayers() []*Player {
 		}
 	}
 	return suspended
+}
+
+func (r *TeamConfig) DecreaseFatigue(minutes int, teams []*TeamConfig) {
+	r.IncreasePlayerFatigue(-minutes, teams)
+}
+
+func (r *TeamConfig) IncreasePlayerFatigue(minutes int, teams []*TeamConfig) {
+	for _, t := range teams {
+		players := append(t.Lineup, t.Subs...)
+		for _, attrs := range players {
+			if attrs.IsActive {
+				// fmt.Printf("%s fatigue adjusted from %f", attrs.BaseStats.Name, attrs.Fatigue)
+				attrs.Fatigue = formulas.CalcFatigue(attrs.Fatigue, minutes)
+				// fmt.Printf(" to %f\n", attrs.Fatigue)
+			}
+		}
+	}
 }

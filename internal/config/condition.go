@@ -5,6 +5,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/esmshub/esms-go/engine/types"
+	"github.com/esmshub/esms-go/engine/validators"
 )
 
 type Condition interface {
@@ -83,8 +86,8 @@ func parseInjuryCondition(args ...string) (Condition, error) {
 		}
 	} else {
 		pos := strings.TrimPrefix(c.Value, "O")
-		if !IsValidPosition(pos) {
-			return c, fmt.Errorf("value '%s' is invalid for %s condition, must be one of %+v", c.Value, args[0], ValidPositions)
+		if !validators.IsValidPosition(pos) {
+			return c, fmt.Errorf("value '%s' is invalid for %s condition, must be one of %+v", c.Value, args[0], types.ValidPositions)
 		}
 	}
 	return c, nil
@@ -164,8 +167,8 @@ func parseCardCondition(args ...string) (Condition, error) {
 		if pos < 1 || pos > 11 {
 			return c, fmt.Errorf("value '%d' is invalid for %s condition, must be between 1-11", pos, args[0])
 		}
-	} else if !IsValidPosition(args[2]) {
-		return c, fmt.Errorf("value '%s' is invalid for %s condition, must be one of %+v", args[2], args[0], ValidPositions)
+	} else if !validators.IsValidPosition(args[2]) {
+		return c, fmt.Errorf("value '%s' is invalid for %s condition, must be one of %+v", args[2], args[0], types.ValidPositions)
 	}
 	return c, nil
 }

@@ -1,12 +1,12 @@
 package models
 
 type Player struct {
-	Name      string
-	Age       int
-	Nat       string
-	Position  string
-	Abilities *PlayerAbilities
-	Stats     *PlayerStats
+	Name     string
+	Age      int
+	Nat      string
+	Position string
+	Ability  *PlayerAbilities
+	Stats    *PlayerStats
 }
 
 func (p *Player) GetIsInjured() bool {
@@ -61,11 +61,16 @@ type PlayerGameStats struct {
 	Goals         int
 	IsCautioned   bool
 	IsSentOff     bool
+	IsInjured     bool
+	IsSuspended   bool
 }
 
 type PlayerPosition struct {
-	Position  string
-	Name      string
-	Abilities *PlayerAbilities
-	Stats     *PlayerGameStats
+	Position    string
+	Name        string
+	BaseAbility *PlayerAbilities
+	Ability     *PlayerAbilities
+	Stats       *PlayerGameStats
+	IsActive    bool
+	Fatigue     float64
 }

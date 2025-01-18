@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/esmshub/esms-go/pkg/utils"
@@ -41,7 +42,7 @@ func init() {
 	conf.SetDefault("paths.fixtureset_dir", exePath)
 	conf.SetDefault("paths.teamsheet_dir", exePath)
 	conf.SetDefault("paths.output_dir", exePath)
-	conf.SetDefault("match.home_bonus", 30)
+	conf.SetDefault("match.home_bonus", 100)
 	conf.SetDefault("match.extra_time", false)
 	conf.SetDefault("match.min_subs", 3)
 	conf.SetDefault("match.max_subs", 7)
@@ -59,7 +60,7 @@ func init() {
 	conf.RegisterAlias("home_bonus", "match.home_bonus")
 	conf.RegisterAlias("extra_time", "match.extra_time")
 	conf.RegisterAlias("min_subs", "match.min_subs")
-	conf.RegisterAlias("bench_size", "match.bench_size")
+	conf.RegisterAlias("bench_size", "match.max_subs")
 	conf.RegisterAlias("min_df", "match.min_df")
 	conf.RegisterAlias("max_df", "match.max_df")
 	conf.RegisterAlias("max_dm", "match.max_dm")
@@ -117,7 +118,11 @@ func LoadLeagueConfig(filePath string) error {
 					key := fmt.Sprintf("%s%s", prefix, strings.TrimSpace(parts[0]))
 					value := strings.TrimSpace(parts[1])
 					zap.L().Debug("Setting parsed", zap.String(key, value))
-					LeagueConfig.Set(key, value)
+					if intValue, err := strconv.Atoi(value); err == nil {
+						LeagueConfig.Set(key, intValue)
+					} else {
+						LeagueConfig.Set(key, value)
+					}
 				} else {
 					// Handle invalid key-value pair format
 					return fmt.Errorf("invalid row format: %s", line)

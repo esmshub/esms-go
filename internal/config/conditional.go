@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/esmshub/esms-go/engine/models"
+	"github.com/esmshub/esms-go/engine/types"
+	"github.com/esmshub/esms-go/engine/validators"
 	"github.com/esmshub/esms-go/pkg/utils"
 	"golang.org/x/exp/slices"
 )
@@ -128,8 +130,8 @@ func parseChangePositionConditional(text string) (*models.Conditional, error) {
 	num, err := strconv.Atoi(strings.TrimSpace(fields[1]))
 	if err != nil || (num < 0 || num > 11) {
 		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be a number between 1-11", strings.TrimSpace(fields[1]), ChangePositionAction)
-	} else if !IsValidPosition(pos) {
-		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be one of %+v", pos, ChangePositionAction, ValidPositions)
+	} else if !validators.IsValidPosition(pos) {
+		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be one of %+v", pos, ChangePositionAction, types.ValidPositions)
 	}
 
 	conditions, err := parseConditions(text)
@@ -152,8 +154,8 @@ func parsePlayerNumberOrPosition(text string) (any, error) {
 	num, err := strconv.Atoi(str)
 	if err == nil {
 		return num, nil
-	} else if !IsValidPosition(str) {
-		return str, fmt.Errorf("must be one of %+v", ValidPositions)
+	} else if !validators.IsValidPosition(str) {
+		return str, fmt.Errorf("must be one of %+v", types.ValidPositions)
 	} else {
 		return str, nil
 	}
@@ -182,8 +184,8 @@ func parseSubConditional(text string) (*models.Conditional, error) {
 	}
 	// parse target position
 	targetPos := strings.TrimSpace(fields[3])
-	if !IsValidPosition(targetPos) {
-		return cond, fmt.Errorf("value '%s' invalid for %s conditional, must be one of %+v", targetPos, SubstitutionAction, ValidPositions)
+	if !validators.IsValidPosition(targetPos) {
+		return cond, fmt.Errorf("value '%s' invalid for %s conditional, must be one of %+v", targetPos, SubstitutionAction, types.ValidPositions)
 	}
 
 	conditions, err := parseConditions(parts[1])
@@ -215,7 +217,7 @@ func parseTacticConditional(text string) (*models.Conditional, error) {
 
 	tactic := strings.TrimSpace(fields[1])
 	if !isValidTactic(tactic) {
-		return cond, fmt.Errorf("value '%s' is invalid for %s conditional, must be one of %+v", tactic, TacticAction, supportedTactics)
+		return cond, fmt.Errorf("value '%s' is invalid for %s conditional, must be one of %+v", tactic, TacticAction, types.ValidTactics)
 	}
 
 	conditions, err := parseConditions(parts[1])

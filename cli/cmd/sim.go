@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 
 	"github.com/esmshub/esms-go/engine"
 	"github.com/esmshub/esms-go/engine/models"
@@ -19,6 +18,7 @@ import (
 
 var (
 	fixtureSetFilePath string
+	tacticsFilePath    string
 	rngSeed            uint64
 )
 
@@ -44,27 +44,36 @@ to quickly create a Cobra application.`,
 			zap.L().Info("loading nearest league config")
 			err = config.LoadNearestLeagueConfig()
 		}
-
 		if err != nil {
 			zap.L().Warn("unable to load config", zap.Error(err))
 			zap.L().Warn("using default config")
 		}
 
+		// zap.L().Info("before override", zap.Any("match.home_bonus", config.LeagueConfig.GetInt("match.home_bonus")))
 		fixtureSet := utils.Must(config.LoadFixtureset[config.Fixtureset](fixtureSetFilePath))
 		if fixtureSet.OverrideSettings != nil {
-			zap.L().Debug("applying override settings", zap.Any("settings", fixtureSet.OverrideSettings))
+			zap.L().Info("applying override settings", zap.Any("settings", fixtureSet.OverrideSettings))
 			err := config.LeagueConfig.MergeConfigMap(fixtureSet.OverrideSettings)
 			if err != nil {
 				zap.L().Warn("unable to apply override settings", zap.Error(err))
 			}
 		}
+		// zap.L().Info("after override", zap.Any("match.home_bonus", config.LeagueConfig.GetInt("match.home_bonus")))
+		// zap.L().Info("loaded league config", zap.Any("config", config.LeagueConfig.AllSettings()))
+
+		if tacticsFilePath == "" {
+			tacticsFilePath = filepath.Join(config.LeagueConfig.GetString("paths.config_dir"), config.DefaultTacticsMatrixFileName)
+		}
+		tacticsMatrix, err := config.LoadTactics(tacticsFilePath)
+		if err != nil {
+			zap.L().Warn("unable to load tactics matrix", zap.Error(err))
+		}
 
 		opts := &engine.Options{
-			HomeBonus:       config.LeagueConfig.GetInt("match.home_bonus"),
-			EnableExtraTime: config.LeagueConfig.GetBool("match.extra_time"),
-			RngSeed:         rngSeed,
+			RngSeed:       rngSeed,
+			TacticsMatrix: tacticsMatrix,
+			AppConfig:     config.LeagueConfig.Get("match").(map[string]any),
 		}
-		zap.L().Info("config", zap.Any("config", config.LeagueConfig.AllSettings()))
 		for _, f := range fixtureSet.Fixtures {
 			// resolve config paths
 			if f.HomeTeamCode != "" {
@@ -93,24 +102,28 @@ to quickly create a Cobra application.`,
 			homeTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[homeTeam.Code].(string)
 			homeTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[homeTeam.Code].(string)
 			homeTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[homeTeam.Code].(string)
-			homeTeam.StadiumCapacity = utils.Must(strconv.Atoi(config.LeagueConfig.Get("stadium_capacity").(map[string]any)[homeTeam.Code].(string)))
+			homeTeam.StadiumCapacity = config.LeagueConfig.Get("stadium_capacity").(map[string]any)[homeTeam.Code].(int)
 			awayTeam := utils.Must(config.LoadTeamConfig(f.AwayTeamsheet, f.AwayRoster))
 			awayTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[awayTeam.Code].(string)
 			awayTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[awayTeam.Code].(string)
 			awayTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[awayTeam.Code].(string)
-			awayTeam.StadiumCapacity = utils.Must(strconv.Atoi(config.LeagueConfig.Get("stadium_capacity").(map[string]any)[awayTeam.Code].(string)))
+			awayTeam.StadiumCapacity = config.LeagueConfig.Get("stadium_capacity").(map[string]any)[awayTeam.Code].(int)
 			match := &models.Match{
 				HomeTeam: homeTeam,
 				AwayTeam: awayTeam,
 			}
 
 			zap.L().Info("running fixture", zap.Any("fixture", f))
-			result := engine.Run(match, opts)
+			result, err := engine.Run(match, opts)
+			if err != nil {
+				return err
+			}
+
 			fileStore := store.MatchResultFileStore{}
-			err := fileStore.Save(result, store.MatchResultFileStoreOptions{
-				LeagueName: config.LeagueConfig.GetString("name"),
+			err = fileStore.Save(result, store.MatchResultFileStoreOptions{
+				HeaderText: config.LeagueConfig.GetString("name"),
 				OutputFile: filepath.Join(config.LeagueConfig.GetString("paths.output_dir"), fmt.Sprintf("%s_%s%s", homeTeam.Code, awayTeam.Code, config.DefaultMatchReportOutputFileExt)),
-				RngSeed:    result.RngSeed,
+				FooterText: fmt.Sprintf("%d Produced from esmscli v0.0.0-alpha", result.RngSeed),
 			})
 			if err != nil {
 				zap.L().Error("unable to save match result", zap.Error(err))
@@ -126,6 +139,7 @@ func init() {
 
 	runCmd.Flags().StringVarP(&fixtureSetFilePath, "fixture-set", "f", "", "Path to fixture set file")
 	runCmd.Flags().Uint64VarP(&rngSeed, "rng-seed", "s", 0, "Seed for random number generator")
+	runCmd.Flags().StringVarP(&tacticsFilePath, "tactics", "t", "", "Path to tactics matrix file")
 
 	runCmd.MarkFlagRequired("fixture-set")
 	// Here you will define your flags and configuration settings.

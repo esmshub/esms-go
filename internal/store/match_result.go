@@ -17,8 +17,8 @@ import (
 
 type MatchResultFileStoreOptions struct {
 	OutputFile string
-	LeagueName string
-	RngSeed    uint64
+	HeaderText string
+	FooterText string
 }
 
 type MatchResultFileStore struct{}
@@ -38,7 +38,12 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	lines := []string{}
 	// print match info
 	now := time.Now()
-	lines = append(lines, fmt.Sprintf("%s, %s vs. %s (%s)\n", options.LeagueName, result.HomeTeam.Name, result.AwayTeam.Name, now.Format("Mon Jan 02")))
+	if options.HeaderText != "" {
+
+	} else {
+
+	}
+	lines = append(lines, fmt.Sprintf("%s, %s vs. %s (%s)\n", options.HeaderText, result.HomeTeam.Name, result.AwayTeam.Name, now.Format("Mon Jan 02")))
 	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.Name, result.AwayTeam.Name))
 	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.Formation, result.AwayTeam.Formation))
 	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.ManagerName, result.AwayTeam.ManagerName))
@@ -54,10 +59,10 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	for i := 0; i < int(math.Max(float64(len(result.HomeTeam.Subs)), float64(len(result.AwayTeam.Subs)))); i++ {
 		hs, as := "", ""
 		if i < len(result.HomeTeam.Subs) {
-			hs = fmt.Sprintf("%s %s", result.HomeTeam.Subs[i].Name, result.HomeTeam.Subs[i].Position)
+			hs = fmt.Sprintf("%s SUB", result.HomeTeam.Subs[i].Name)
 		}
 		if i < len(result.AwayTeam.Subs) {
-			as = fmt.Sprintf("%s %s", result.AwayTeam.Subs[i].Position, result.AwayTeam.Subs[i].Name)
+			as = fmt.Sprintf("SUB %s", result.AwayTeam.Subs[i].Name)
 		}
 		lines = append(lines, fmt.Sprintf("%37s  |  %s", hs, as))
 	}
@@ -120,11 +125,11 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 		lines = append(lines, fmt.Sprintf("%-13s %3s %3d %3d %3d %3d %3d | %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
 			p.Name,
 			p.Position,
-			p.Abilities.Goalkeeping,
-			p.Abilities.Tackling,
-			p.Abilities.Passing,
-			p.Abilities.Shooting,
-			p.Abilities.Aggression,
+			p.BaseAbility.Goalkeeping,
+			p.BaseAbility.Tackling,
+			p.BaseAbility.Passing,
+			p.BaseAbility.Shooting,
+			p.BaseAbility.Aggression,
 			p.Stats.MinutesPlayed,
 			p.Stats.Saves,
 			p.Stats.KeyTackles,
@@ -134,10 +139,10 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 			p.Stats.Goals,
 			utils.BoolToInt(p.Stats.IsCautioned),
 			utils.BoolToInt(p.Stats.IsSentOff),
-			p.Abilities.GoalkeepingAbs,
-			p.Abilities.TacklingAbs,
-			p.Abilities.PassingAbs,
-			p.Abilities.ShootingAbs,
+			p.Ability.GoalkeepingAbs,
+			p.Ability.TacklingAbs,
+			p.Ability.PassingAbs,
+			p.Ability.ShootingAbs,
 		))
 	}
 	lines = append(lines, strings.Repeat("-", 91))
@@ -150,11 +155,11 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 		lines = append(lines, fmt.Sprintf("%-13s %3s %3d %3d %3d %3d %3d | %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
 			p.Name,
 			p.Position,
-			p.Abilities.Goalkeeping,
-			p.Abilities.Tackling,
-			p.Abilities.Passing,
-			p.Abilities.Shooting,
-			p.Abilities.Aggression,
+			p.BaseAbility.Goalkeeping,
+			p.BaseAbility.Tackling,
+			p.BaseAbility.Passing,
+			p.BaseAbility.Shooting,
+			p.BaseAbility.Aggression,
 			p.Stats.MinutesPlayed,
 			p.Stats.Saves,
 			p.Stats.KeyTackles,
@@ -164,14 +169,16 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 			p.Stats.Goals,
 			utils.BoolToInt(p.Stats.IsCautioned),
 			utils.BoolToInt(p.Stats.IsSentOff),
-			p.Abilities.GoalkeepingAbs,
-			p.Abilities.TacklingAbs,
-			p.Abilities.PassingAbs,
-			p.Abilities.ShootingAbs,
+			p.Ability.GoalkeepingAbs,
+			p.Ability.TacklingAbs,
+			p.Ability.PassingAbs,
+			p.Ability.ShootingAbs,
 		))
 	}
 	// print footer
-	lines = append(lines, fmt.Sprintf("%d Produced from ESMS+ v4.013 Beta", options.RngSeed))
+	if options.FooterText != "" {
+		lines = append(lines, options.FooterText)
+	}
 	// Write each line to the file
 	for _, line := range lines {
 		_, err := writer.WriteString(line + "\n") // Write the line with a newline
