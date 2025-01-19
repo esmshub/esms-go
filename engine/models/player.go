@@ -59,10 +59,12 @@ type PlayerGameStats struct {
 	Assists       int
 	Shots         int
 	Goals         int
+	Fouls         int
 	IsCautioned   bool
 	IsSentOff     bool
 	IsInjured     bool
 	IsSuspended   bool
+	IsSubbed      bool
 }
 
 type PlayerPosition struct {

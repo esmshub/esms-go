@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/esmshub/esms-go/engine/models"
+	"github.com/esmshub/esms-go/engine/types"
 	"go.uber.org/zap"
 )
 
@@ -74,6 +75,7 @@ func readLineup(config *models.TeamConfig, text string, findPlayer func(string) 
 			return err
 		}
 
+		player.IsActive = true
 		config.Lineup = append(config.Lineup, player)
 	}
 	return nil
@@ -122,16 +124,16 @@ func readConditionals(config *models.TeamConfig, text string) error {
 	for _, l := range lines {
 		cond := strings.ToUpper(strings.TrimSpace(l))
 		var parse ConditionalParser = nil
-		if strings.HasPrefix(cond, AggressionAction) {
-			parse = conditionalParsers[AggressionAction]
-		} else if strings.HasPrefix(cond, ChangeAggressionAction) {
-			parse = conditionalParsers[ChangeAggressionAction]
-		} else if strings.HasPrefix(cond, ChangePositionAction) {
-			parse = conditionalParsers[ChangePositionAction]
-		} else if strings.HasPrefix(cond, SubstitutionAction) {
-			parse = conditionalParsers[SubstitutionAction]
-		} else if strings.HasPrefix(cond, TacticAction) {
-			parse = conditionalParsers[TacticAction]
+		if strings.HasPrefix(cond, types.AGG_ACTION) {
+			parse = conditionalParsers[types.AGG_ACTION]
+		} else if strings.HasPrefix(cond, types.CHANGEAGG_ACTION) {
+			parse = conditionalParsers[types.CHANGEAGG_ACTION]
+		} else if strings.HasPrefix(cond, types.CHANGEPOS_ACTION) {
+			parse = conditionalParsers[types.CHANGEPOS_ACTION]
+		} else if strings.HasPrefix(cond, types.SUB_ACTION) {
+			parse = conditionalParsers[types.SUB_ACTION]
+		} else if strings.HasPrefix(cond, types.TACTIC_ACTION) {
+			parse = conditionalParsers[types.TACTIC_ACTION]
 		} else {
 			return fmt.Errorf("unknown conditional: %s", cond)
 		}

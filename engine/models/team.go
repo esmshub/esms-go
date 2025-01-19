@@ -5,6 +5,8 @@ import (
 )
 
 type TeamConfig struct {
+	shotProbability float64
+	aggression      float64
 	Name            string
 	Code            string
 	ManagerName     string
@@ -18,15 +20,30 @@ type TeamConfig struct {
 	PlayerRoles     map[string]*PlayerPosition
 	Conditionals    []*Conditional
 	TeamAbility     *PlayerAbilities
-	ShotProbability float64
+	Injuries        int
 }
 
-func (r *TeamConfig) GetShotProbability(oppositionAbility *PlayerAbilities) float64 {
-	return formulas.CalcShotProbability(
+func (r *TeamConfig) GetShotProbability() float64 {
+	return r.shotProbability
+}
+
+func (r *TeamConfig) CalcShotProbability(oppositionAbility *PlayerAbilities) {
+	r.shotProbability = formulas.CalcShotProbability(
 		float64(r.TeamAbility.Aggression),
 		float64(r.TeamAbility.Shooting),
 		float64(r.TeamAbility.Passing),
 		float64(oppositionAbility.Tackling),
+	)
+}
+
+func (r *TeamConfig) GetAggression() float64 {
+	return r.aggression
+}
+
+func (r *TeamConfig) CalcAggression(aggressionLevel int) {
+	r.aggression = formulas.CalcAggression(
+		float64(aggressionLevel),
+		float64(r.TeamAbility.Aggression),
 	)
 }
 

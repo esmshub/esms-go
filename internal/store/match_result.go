@@ -105,7 +105,7 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Blocked Shots", 1, 1))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Off target", 1, 1))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "On target", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Possession", 1, 1))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Possession", result.Possession[0], result.Possession[1]))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Corners", 1, 1))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Red Cards", 1, 1))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Yellow Cards", 1, 1))

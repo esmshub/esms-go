@@ -34,6 +34,10 @@ func Random(value int) int {
 	return r.IntN(value)
 }
 
+func RandomF() float64 {
+	return r.Float64()
+}
+
 // RandomRange generates a random number in the range [min, max)
 func RandomRange(min, max int) int {
 	return r.IntN(max-min) + min

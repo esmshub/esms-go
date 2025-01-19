@@ -14,7 +14,7 @@ import (
 )
 
 // func (c Condition) Validate() error {
-// 	_, validEvent := util.FindInSlice(supportedEventCodes, func(s string) bool {
+// 	_, validEvent := util.FindInSlice(types.ValidConditionalEvents, func(s string) bool {
 // 		return strings.EqualFold(s, c.Event)
 // 	})
 // 	if !validEvent {
@@ -77,12 +77,12 @@ func parseAggression(text string, action string) (int, error) {
 
 func parseAggressionConditional(text string) (*models.Conditional, error) {
 	var cond models.Conditional
-	value, err := parseAggression(text, AggressionAction)
+	value, err := parseAggression(text, types.AGG_ACTION)
 	if err != nil {
 		return &cond, err
 	} else {
 		cond = models.Conditional{
-			Action: AggressionAction,
+			Action: types.AGG_ACTION,
 			Values: []any{value},
 		}
 		return &cond, nil
@@ -93,9 +93,9 @@ func parseChangeAggressionConditional(text string) (*models.Conditional, error) 
 	var cond *models.Conditional
 	parts := strings.Split(text, "IF")
 	if len(parts) != 2 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", ChangeAggressionAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.CHANGEAGG_ACTION, text)
 	}
-	agg, err := parseAggression(parts[0], ChangeAggressionAction)
+	agg, err := parseAggression(parts[0], types.CHANGEAGG_ACTION)
 	if err != nil {
 		return cond, err
 	}
@@ -104,11 +104,11 @@ func parseChangeAggressionConditional(text string) (*models.Conditional, error) 
 	if err != nil {
 		return cond, err
 	} else if len(conditions) == 0 {
-		return cond, fmt.Errorf("no valid conditions found for %s conditional '%s'", ChangeAggressionAction, text)
+		return cond, fmt.Errorf("no valid conditions found for %s conditional '%s'", types.CHANGEAGG_ACTION, text)
 	}
 
 	cond = &models.Conditional{
-		Action:     ChangeAggressionAction,
+		Action:     types.CHANGEAGG_ACTION,
 		Values:     []any{agg},
 		Conditions: conditions,
 	}
@@ -119,30 +119,30 @@ func parseChangePositionConditional(text string) (*models.Conditional, error) {
 	var cond *models.Conditional
 	parts := strings.Split(text, "IF")
 	if len(parts) != 2 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", ChangePositionAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.CHANGEPOS_ACTION, text)
 	}
 
 	fields := strings.Fields(parts[0])
 	if len(fields) < 3 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", ChangePositionAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.CHANGEPOS_ACTION, text)
 	}
 	pos := strings.TrimSpace(fields[2])
 	num, err := strconv.Atoi(strings.TrimSpace(fields[1]))
 	if err != nil || (num < 0 || num > 11) {
-		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be a number between 1-11", strings.TrimSpace(fields[1]), ChangePositionAction)
+		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be a number between 1-11", strings.TrimSpace(fields[1]), types.CHANGEPOS_ACTION)
 	} else if !validators.IsValidPosition(pos) {
-		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be one of %+v", pos, ChangePositionAction, types.ValidPositions)
+		return cond, fmt.Errorf("invalid value '%s' in %s conditional, must be one of %+v", pos, types.CHANGEPOS_ACTION, types.ValidPositions)
 	}
 
 	conditions, err := parseConditions(text)
 	if err != nil {
 		return cond, err
 	} else if len(conditions) == 0 {
-		return cond, fmt.Errorf("no valid conditions found for %s conditional '%s'", ChangePositionAction, text)
+		return cond, fmt.Errorf("no valid conditions found for %s conditional '%s'", types.CHANGEPOS_ACTION, text)
 	}
 
 	cond = &models.Conditional{
-		Action:     ChangePositionAction,
+		Action:     types.CHANGEPOS_ACTION,
 		Values:     []any{num, pos},
 		Conditions: conditions,
 	}
@@ -165,38 +165,38 @@ func parseSubConditional(text string) (*models.Conditional, error) {
 	var cond *models.Conditional
 	parts := strings.Split(text, "IF")
 	if len(parts) != 2 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", SubstitutionAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.SUB_ACTION, text)
 	}
 
 	fields := strings.Fields(parts[0])
 	if len(fields) < 4 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", SubstitutionAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.SUB_ACTION, text)
 	}
 	activeNumOrPos, err := parsePlayerNumberOrPosition(fields[1])
 	if err != nil {
-		return cond, fmt.Errorf("value '%+v' invalid for %s condition, %+v", activeNumOrPos, SubstitutionAction, err)
+		return cond, fmt.Errorf("value '%+v' invalid for %s condition, %+v", activeNumOrPos, types.SUB_ACTION, err)
 	} else if utils.IsNumber(activeNumOrPos) && (activeNumOrPos.(int) < 1 || activeNumOrPos.(int) > 11) {
-		return cond, fmt.Errorf("value '%+v' invalid for %s condition, must be a number between 1-11", activeNumOrPos, SubstitutionAction)
+		return cond, fmt.Errorf("value '%+v' invalid for %s condition, must be a number between 1-11", activeNumOrPos, types.SUB_ACTION)
 	}
 	subNumOrPos, err := strconv.Atoi(strings.TrimSpace(fields[2]))
 	if err != nil || (subNumOrPos < 12 || subNumOrPos > 16) {
-		return cond, fmt.Errorf("value '%s' invalid for %s condition, must be a number between 12-16", strings.TrimSpace(fields[2]), SubstitutionAction)
+		return cond, fmt.Errorf("value '%s' invalid for %s condition, must be a number between 12-16", strings.TrimSpace(fields[2]), types.SUB_ACTION)
 	}
 	// parse target position
 	targetPos := strings.TrimSpace(fields[3])
 	if !validators.IsValidPosition(targetPos) {
-		return cond, fmt.Errorf("value '%s' invalid for %s conditional, must be one of %+v", targetPos, SubstitutionAction, types.ValidPositions)
+		return cond, fmt.Errorf("value '%s' invalid for %s conditional, must be one of %+v", targetPos, types.SUB_ACTION, types.ValidPositions)
 	}
 
 	conditions, err := parseConditions(parts[1])
 	if err != nil {
 		return cond, err
 	} else if len(conditions) == 0 {
-		return cond, fmt.Errorf("no conditions found for %s conditional '%s'", SubstitutionAction, text)
+		return cond, fmt.Errorf("no conditions found for %s conditional '%s'", types.SUB_ACTION, text)
 	}
 
 	cond = &models.Conditional{
-		Action:     SubstitutionAction,
+		Action:     types.SUB_ACTION,
 		Values:     []any{activeNumOrPos, subNumOrPos, targetPos},
 		Conditions: conditions,
 	}
@@ -207,28 +207,28 @@ func parseTacticConditional(text string) (*models.Conditional, error) {
 	var cond *models.Conditional
 	parts := strings.Split(text, "IF")
 	if len(parts) != 2 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", TacticAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.TACTIC_ACTION, text)
 	}
 
 	fields := strings.Fields(parts[0])
 	if len(fields) < 2 {
-		return cond, fmt.Errorf("invalid %s conditional: %s", TacticAction, text)
+		return cond, fmt.Errorf("invalid %s conditional: %s", types.TACTIC_ACTION, text)
 	}
 
 	tactic := strings.TrimSpace(fields[1])
 	if !isValidTactic(tactic) {
-		return cond, fmt.Errorf("value '%s' is invalid for %s conditional, must be one of %+v", tactic, TacticAction, types.ValidTactics)
+		return cond, fmt.Errorf("value '%s' is invalid for %s conditional, must be one of %+v", tactic, types.TACTIC_ACTION, types.ValidTactics)
 	}
 
 	conditions, err := parseConditions(parts[1])
 	if err != nil {
 		return cond, err
 	} else if len(conditions) == 0 {
-		return cond, fmt.Errorf("no conditions found for %s conditional '%s'", TacticAction, text)
+		return cond, fmt.Errorf("no conditions found for %s conditional '%s'", types.TACTIC_ACTION, text)
 	}
 
 	cond = &models.Conditional{
-		Action:     TacticAction,
+		Action:     types.TACTIC_ACTION,
 		Values:     []any{tactic},
 		Conditions: conditions,
 	}
@@ -239,16 +239,16 @@ func parseConditions(text string) ([]models.Condition, error) {
 	results := []models.Condition{}
 	matches := conditionRegex.FindAllStringSubmatch(strings.TrimSpace(text), -1)
 	for _, match := range matches {
-		idx := slices.IndexFunc(supportedEventCodes, func(s string) bool {
+		idx := slices.IndexFunc(types.ValidConditionalEvents, func(s string) bool {
 			return strings.EqualFold(s, match[1])
 		})
 		if idx == -1 {
 			return results, fmt.Errorf("invalid event type: %s", match[1])
 		}
 
-		parse := conditionParsers[supportedEventCodes[idx]]
+		parse := conditionParsers[types.ValidConditionalEvents[idx]]
 		if parse == nil {
-			panic(fmt.Errorf("no parser for %s condition found", supportedEventCodes[idx]))
+			panic(fmt.Errorf("no parser for %s condition found", types.ValidConditionalEvents[idx]))
 		}
 		cond, err := parse(match[1:]...)
 		if err != nil {
@@ -263,25 +263,6 @@ func parseConditions(text string) ([]models.Condition, error) {
 }
 
 var (
-	AggressionAction       string   = "AGG"
-	ChangeAggressionAction string   = "CHANGEAGG"
-	ChangePositionAction   string   = "CHANGEPOS"
-	SubstitutionAction     string   = "SUB"
-	TacticAction           string   = "TACTIC"
-	InjuryEventCode        string   = "INJURED"
-	MinutesEventCode       string   = "MIN"
-	RedCardEventCode       string   = "RED"
-	YellowCardEventCode    string   = "YELLOW"
-	ShotEventCode          string   = "SHOTS"
-	ScoreEventCode         string   = "SCORE"
-	supportedEventCodes    []string = []string{
-		InjuryEventCode,
-		MinutesEventCode,
-		RedCardEventCode,
-		YellowCardEventCode,
-		ShotEventCode,
-		ScoreEventCode,
-	}
 	supportedOperators    []string = []string{"<", "<=", "=", ">=", ">"}
 	conditionRegexPattern string   = "\\b(YELLOW|RED|SHOTS|SCORE|MIN|INJURED)\\b(?:\\s+)?(?:([<>]?=?)+\\s*(-?\\d*\\.?\\d+|-?[a-zA-Z]+))\\b"
 	// conditionalRegexPattern string   = "\\b(AGG|CHANGEAGG|SUB|TACTIC|)\\b(?:\\s+)(.*)(?=IF)"
@@ -291,20 +272,20 @@ var (
 	conditionRegex *regexp.Regexp
 
 	conditionParsers = map[string]ConditionParser{
-		InjuryEventCode:     parseInjuryCondition,
-		ShotEventCode:       parseShotCondition,
-		ScoreEventCode:      parseScoreCondition,
-		MinutesEventCode:    parseMinutesCondition,
-		RedCardEventCode:    parseCardCondition,
-		YellowCardEventCode: parseCardCondition,
+		types.INJ_EVENT:        parseInjuryCondition,
+		types.SHOT_EVENT:       parseShotCondition,
+		types.SCORE_EVENT:      parseScoreCondition,
+		types.MIN_EVENT:        parseMinutesCondition,
+		types.REDCARD_EVENT:    parseCardCondition,
+		types.YELLOWCARD_EVENT: parseCardCondition,
 	}
 
 	conditionalParsers = map[string]ConditionalParser{
-		AggressionAction:       parseAggressionConditional,
-		ChangeAggressionAction: parseChangeAggressionConditional,
-		ChangePositionAction:   parseChangePositionConditional,
-		SubstitutionAction:     parseSubConditional,
-		TacticAction:           parseTacticConditional,
+		types.AGG_ACTION:       parseAggressionConditional,
+		types.CHANGEAGG_ACTION: parseChangeAggressionConditional,
+		types.CHANGEPOS_ACTION: parseChangePositionConditional,
+		types.SUB_ACTION:       parseSubConditional,
+		types.TACTIC_ACTION:    parseTacticConditional,
 	}
 )
 
