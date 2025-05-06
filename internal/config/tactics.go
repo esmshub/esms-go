@@ -9,7 +9,6 @@ import (
 	"github.com/esmshub/esms-go/engine/types"
 	"github.com/esmshub/esms-go/engine/validators"
 	"github.com/esmshub/esms-go/pkg/utils"
-	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
@@ -70,7 +69,6 @@ func parseTacticRow(line string, row int) (string, []float64, error) {
 }
 
 func LoadTactics(filePath string) (*models.TacticsMatrix, error) {
-	zap.L().Info("Reading tactics matrix...")
 	matrix := models.TacticsMatrix{}
 	_, err := utils.ReadFile(filePath, func(line string, row int) error {
 		trimmedLine := strings.TrimSpace(line)

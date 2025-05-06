@@ -27,7 +27,7 @@ func LoadTeamConfig(teamsheetFile, rosterFile string) (*models.TeamConfig, error
 	var roster []*models.Player
 	var err error
 
-	zap.L().Info("reading roster file", zap.String("file", rosterFile))
+	zap.L().Info("reading roster file", zap.String("path", rosterFile))
 	if filepath.Ext(rosterFile) == ".txt" {
 		// load legacy teamsheet
 		roster, err = LoadRoster(rosterFile)
@@ -51,7 +51,7 @@ func LoadTeamConfig(teamsheetFile, rosterFile string) (*models.TeamConfig, error
 		return roster[i]
 	}
 
-	zap.L().Info("reading teamsheet file", zap.String("file", teamsheetFile))
+	zap.L().Info("reading teamsheet file", zap.String("path", teamsheetFile))
 	var config *models.TeamConfig
 	if filepath.Ext(teamsheetFile) == ".txt" {
 		// load legacy teamsheet

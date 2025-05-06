@@ -7,12 +7,14 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/pkg/utils"
 	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 )
 
 type MatchResultFileStoreOptions struct {
@@ -23,7 +25,7 @@ type MatchResultFileStoreOptions struct {
 
 type MatchResultFileStore struct{}
 
-func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options MatchResultFileStoreOptions) error {
+func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	zap.L().Info("saving match result as text", zap.String("file", options.OutputFile))
 	// Open the file in write mode. If the file doesn't exist, it will be created.
 	file, err := os.Create(options.OutputFile)
@@ -35,6 +37,7 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	// Create a new buffered writer for the file
 	writer := bufio.NewWriter(file)
 
+	teams := []*models.MatchTeam{result.HomeTeam, result.AwayTeam}
 	lines := []string{}
 	// print match info
 	now := time.Now()
@@ -43,137 +46,113 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	} else {
 
 	}
-	lines = append(lines, fmt.Sprintf("%s, %s vs. %s (%s)\n", options.HeaderText, result.HomeTeam.Name, result.AwayTeam.Name, now.Format("Mon Jan 02")))
-	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.Name, result.AwayTeam.Name))
-	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.Formation, result.AwayTeam.Formation))
-	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.ManagerName, result.AwayTeam.ManagerName))
+	lines = append(lines, fmt.Sprintf("%s, %s vs. %s (%s)\n", options.HeaderText, result.HomeTeam.GetName(), result.AwayTeam.GetName(), now.Format("Mon Jan 02")))
+	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.GetName(), result.AwayTeam.GetName()))
+	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.GetFormation(), result.AwayTeam.GetFormation()))
+	lines = append(lines, fmt.Sprintf("%37s  |  %s", result.HomeTeam.GetManagerName(), result.AwayTeam.GetManagerName()))
 	lines = append(lines, fmt.Sprintf("%37s  |", ""))
 	// print lineup
-	for i := 0; i < len(result.HomeTeam.Lineup); i++ {
-		hp := result.HomeTeam.Lineup[i]
-		ap := result.AwayTeam.Lineup[i]
-		lines = append(lines, fmt.Sprintf("%34s %s  |  %s %s", hp.Name, hp.Position, ap.Position, ap.Name))
+	homeLineup := result.HomeTeam.GetStarters()
+	awayLineup := result.AwayTeam.GetStarters()
+	for i := 0; i < len(homeLineup); i++ {
+		hp := homeLineup[i]
+		ap := awayLineup[i]
+		lines = append(lines, fmt.Sprintf("%34s %s  |  %s %s", hp.GetName(), hp.GetPosition(), ap.GetPosition(), ap.GetName()))
 	}
 	lines = append(lines, fmt.Sprintf("%37s  |", ""))
 	// print subs
-	for i := 0; i < int(math.Max(float64(len(result.HomeTeam.Subs)), float64(len(result.AwayTeam.Subs)))); i++ {
+	homeSubs := result.HomeTeam.GetSubs()
+	awaySubs := result.AwayTeam.GetSubs()
+	for i := 0; i < int(math.Max(float64(len(homeSubs)), float64(len(homeSubs)))); i++ {
 		hs, as := "", ""
-		if i < len(result.HomeTeam.Subs) {
-			hs = fmt.Sprintf("%s SUB", result.HomeTeam.Subs[i].Name)
+		if i < len(homeSubs) {
+			hs = fmt.Sprintf("%s SUB", homeSubs[i].GetName())
 		}
-		if i < len(result.AwayTeam.Subs) {
-			as = fmt.Sprintf("SUB %s", result.AwayTeam.Subs[i].Name)
+		if i < len(homeSubs) {
+			as = fmt.Sprintf("SUB %s", awaySubs[i].GetName())
 		}
 		lines = append(lines, fmt.Sprintf("%37s  |  %s", hs, as))
 	}
-	// TODO: print ref
 	if result.Referee != nil {
 		lines = append(lines, fmt.Sprintf("\nReferee: %s (%s)", result.Referee.Name, result.Referee.Nat))
 	}
-	// TODO: print commentary
-	lines = append(lines, "\n")
+	// print commentary
+	lines = append(lines, "\n*************  MATCH COMMENTARY  ****************")
+	lines = append(lines, strings.Join(commentary, ""))
+	lines = append(lines, "")
 	// print match details
 	lines = append(lines, "Match Details")
 	lines = append(lines, strings.Repeat("-", 91))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Venue", result.HomeTeam.StadiumName))
+	lines = append(lines, fmt.Sprintf("%-22s: %s", "Venue", result.HomeTeam.GetStadiumName()))
 	lines = append(lines, fmt.Sprintf("%-22s: %d", "Attendance", 0))
 	lines = append(lines, strings.Repeat("-", 91))
 	// TODO: attendance
-	// print match info (home)
-	lines = append(lines, result.HomeTeam.Name+" Match Info")
-	lines = append(lines, strings.Repeat("-", 91))
-	lines = append(lines, fmt.Sprintf("%-22s: %s %s", "Best player", result.HomeTeam.Lineup[4].Name, "(Man of the Match)"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Scorers", "T_Kierney (6)"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Sent Off", "N/A"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Booked", "N/A"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Injured", "N/A"))
-	lines = append(lines, strings.Repeat("-", 91))
-	// print match info (away)
-	lines = append(lines, result.AwayTeam.Name+" Match Info")
-	lines = append(lines, strings.Repeat("-", 91))
-	lines = append(lines, fmt.Sprintf("%-22s: %s %s", "Best player", result.AwayTeam.Lineup[4].Name, "(Man of the Match)"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Scorers", "K_Tierney (12)"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Sent Off", "N/A"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Booked", "N/A"))
-	lines = append(lines, fmt.Sprintf("%-22s: %s", "Injured", "N/A"))
-	lines = append(lines, strings.Repeat("-", 91))
+	// print match info
+	for _, t := range teams {
+		lines = append(lines, t.GetName()+" Match Info")
+		lines = append(lines, strings.Repeat("-", 91))
+		// TODO: MoM
+		lines = append(lines, fmt.Sprintf("%-22s: %s %s", "Best player", "Ronaldo", "(Man of the Match)"))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Scorers", mr.formatScorers(t.GetStats().Goals)))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Sent Off", "N/A"))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Booked", "N/A"))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Injured", "N/A"))
+		lines = append(lines, strings.Repeat("-", 91))
+	}
 	// print match stats
+	homeStats := result.HomeTeam.GetStats()
+	awayStats := result.AwayTeam.GetStats()
 	lines = append(lines, "\nMatch Statistics")
 	lines = append(lines, strings.Repeat("-", 91))
-	lines = append(lines, fmt.Sprintf("%40s   |    %s", result.HomeTeam.Name, result.AwayTeam.Name))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Attempts on Goal", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Blocked Shots", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Off target", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "On target", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Possession", result.Possession[0], result.Possession[1]))
+	lines = append(lines, fmt.Sprintf("%40s   |    %s", result.HomeTeam.GetName(), result.AwayTeam.GetName()))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Attempts on Goal", homeStats.ShotsOnTarget+homeStats.ShotsOffTarget, awayStats.ShotsOnTarget+awayStats.ShotsOffTarget))
+	// lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Blocked Shots", 1, 1))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Off target", homeStats.ShotsOffTarget, awayStats.ShotsOffTarget))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "On target", homeStats.ShotsOnTarget, awayStats.ShotsOnTarget))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Possession", homeStats.Possession, awayStats.Possession))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Corners", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Red Cards", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Yellow Cards", 1, 1))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Red Cards", homeStats.RedCards, awayStats.RedCards))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Yellow Cards", homeStats.YellowCards, awayStats.YellowCards))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Subs Used", 1, 1))
 	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Fouls", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Key Tackles", 1, 1))
-	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Key Passes", 1, 1))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Key Tackles", homeStats.Tackles, awayStats.Tackles))
+	lines = append(lines, fmt.Sprintf("%-22s:         %3d        |       %d", "Key Passes", homeStats.Passes, awayStats.Passes))
 	lines = append(lines, strings.Repeat("-", 91))
-	lines = append(lines, fmt.Sprintf("%-22s: %s %d - %d %s", "Final Score", result.HomeTeam.Name, 0, 0, result.AwayTeam.Name))
+	lines = append(lines, fmt.Sprintf("%-22s: %s %d - %d %s", "Final Score", result.HomeTeam.GetName(), len(homeStats.Goals), len(awayStats.Goals), result.AwayTeam.GetName()))
 	lines = append(lines, strings.Repeat("-", 91))
 	// print player stats (home)
-	lines = append(lines, "\nPlayer statistics - "+result.HomeTeam.Name)
-	lines = append(lines, "Name          Pos  St  Tk  Ps  Sh  Ag | Min Sav Ktk Kps Ass Sht Gls Yel Red KAb TAb PAb SAb")
-	lines = append(lines, strings.Repeat("-", 91))
-	homeSquad := append(result.HomeTeam.Lineup, result.HomeTeam.Subs...)
-	for _, p := range homeSquad {
-		lines = append(lines, fmt.Sprintf("%-13s %3s %3d %3d %3d %3d %3d | %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
-			p.Name,
-			p.Position,
-			p.BaseAbility.Goalkeeping,
-			p.BaseAbility.Tackling,
-			p.BaseAbility.Passing,
-			p.BaseAbility.Shooting,
-			p.BaseAbility.Aggression,
-			p.Stats.MinutesPlayed,
-			p.Stats.Saves,
-			p.Stats.KeyTackles,
-			p.Stats.KeyPasses,
-			p.Stats.Assists,
-			p.Stats.Shots,
-			p.Stats.Goals,
-			utils.BoolToInt(p.Stats.IsCautioned),
-			utils.BoolToInt(p.Stats.IsSentOff),
-			p.Ability.GoalkeepingAbs,
-			p.Ability.TacklingAbs,
-			p.Ability.PassingAbs,
-			p.Ability.ShootingAbs,
-		))
-	}
-	lines = append(lines, strings.Repeat("-", 91))
-	// print player stats (away)
-	lines = append(lines, "\nPlayer statistics - "+result.AwayTeam.Name)
-	lines = append(lines, "Name          Pos  St  Tk  Ps  Sh  Ag | Min Sav Ktk Kps Ass Sht Gls Yel Red KAb TAb PAb SAb")
-	lines = append(lines, strings.Repeat("-", 91))
-	awaySquad := append(result.AwayTeam.Lineup, result.AwayTeam.Subs...)
-	for _, p := range awaySquad {
-		lines = append(lines, fmt.Sprintf("%-13s %3s %3d %3d %3d %3d %3d | %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
-			p.Name,
-			p.Position,
-			p.BaseAbility.Goalkeeping,
-			p.BaseAbility.Tackling,
-			p.BaseAbility.Passing,
-			p.BaseAbility.Shooting,
-			p.BaseAbility.Aggression,
-			p.Stats.MinutesPlayed,
-			p.Stats.Saves,
-			p.Stats.KeyTackles,
-			p.Stats.KeyPasses,
-			p.Stats.Assists,
-			p.Stats.Shots,
-			p.Stats.Goals,
-			utils.BoolToInt(p.Stats.IsCautioned),
-			utils.BoolToInt(p.Stats.IsSentOff),
-			p.Ability.GoalkeepingAbs,
-			p.Ability.TacklingAbs,
-			p.Ability.PassingAbs,
-			p.Ability.ShootingAbs,
-		))
+	for i, t := range teams {
+		lines = append(lines, "\nPlayer statistics - "+t.GetName())
+		lines = append(lines, "Name          Pos  St  Tk  Ps  Sh  Ag | Min Sav Ktk Kps Ass Sht Gls Yel Red KAb TAb PAb SAb")
+		lines = append(lines, strings.Repeat("-", 91))
+		for _, p := range t.GetLineup() {
+			stats := p.GetStats()
+			lines = append(lines, fmt.Sprintf("%-13s %3s %3d %3d %3d %3d %3d | %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
+				p.GetName(),
+				p.GetPosition(),
+				p.GetBaseAbility().Goalkeeping,
+				p.GetBaseAbility().Tackling,
+				p.GetBaseAbility().Passing,
+				p.GetBaseAbility().Shooting,
+				p.GetBaseAbility().Aggression,
+				stats.MinutesPlayed,
+				stats.Saves,
+				stats.KeyTackles,
+				stats.KeyPasses,
+				stats.Assists,
+				stats.ShotsOnTarget+stats.ShotsOffTarget,
+				len(stats.Goals),
+				utils.BoolToInt(stats.IsCautioned),
+				utils.BoolToInt(stats.IsSentOff),
+				p.GetMatchAbility().GoalkeepingAbs,
+				p.GetMatchAbility().TacklingAbs,
+				p.GetMatchAbility().PassingAbs,
+				p.GetMatchAbility().ShootingAbs,
+			))
+		}
+		if i == 0 {
+			lines = append(lines, strings.Repeat("-", 91))
+		}
 	}
 	// print footer
 	if options.FooterText != "" {
@@ -196,23 +175,41 @@ func (t *MatchResultFileStore) saveAsText(result *models.MatchResult, options Ma
 	return nil
 }
 
-func (t *MatchResultFileStore) saveAsYaml(result *models.MatchResult, options MatchResultFileStoreOptions) error {
+func (mr *MatchResultFileStore) formatScorers(scorers []models.MatchGoal) string {
+	if len(scorers) == 0 {
+		return "N/A"
+	}
+	// Group scorers by name and minute
+	scorersByMinute := utils.Reduce(scorers, func(acc map[string][]int, g models.MatchGoal) map[string][]int {
+		name := g.Player.GetName()
+		if _, ok := acc[name]; !ok {
+			acc[name] = []int{}
+		}
+		acc[name] = append(acc[name], g.Minute)
+		return acc
+	}, map[string][]int{})
+	return strings.Join(utils.Map(maps.Keys(scorersByMinute), func(name string) string {
+		return fmt.Sprintf("%s (%s)", name, strings.Join(utils.Map(scorersByMinute[name], strconv.Itoa), ","))
+	}), ", ")
+}
+
+func (mr *MatchResultFileStore) saveAsYaml(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	return errors.ErrUnsupported
 }
 
-func (t *MatchResultFileStore) saveAsJson(result *models.MatchResult, options MatchResultFileStoreOptions) error {
+func (mr *MatchResultFileStore) saveAsJson(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	return errors.ErrUnsupported
 }
 
-func (t *MatchResultFileStore) Save(result *models.MatchResult, options MatchResultFileStoreOptions) error {
+func (mr *MatchResultFileStore) Save(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	ext := filepath.Ext(options.OutputFile)
 	switch ext {
 	case ".txt":
-		return t.saveAsText(result, options)
+		return mr.saveAsText(result, commentary, options)
 	case ".yaml":
-		return t.saveAsYaml(result, options)
+		return mr.saveAsYaml(result, commentary, options)
 	case ".json":
-		return t.saveAsJson(result, options)
+		return mr.saveAsJson(result, commentary, options)
 	default:
 		return fmt.Errorf("unsupported file format: %s", ext)
 	}

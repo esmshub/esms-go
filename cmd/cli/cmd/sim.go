@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/esmshub/esms-go/engine"
+	"github.com/esmshub/esms-go/engine/commentary"
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/internal/config"
 	"github.com/esmshub/esms-go/internal/store"
@@ -49,7 +50,6 @@ to quickly create a Cobra application.`,
 			zap.L().Warn("using default config")
 		}
 
-		// zap.L().Info("before override", zap.Any("match.home_bonus", config.LeagueConfig.GetInt("match.home_bonus")))
 		fixtureSet := utils.Must(config.LoadFixtureset[config.Fixtureset](fixtureSetFilePath))
 		if fixtureSet.OverrideSettings != nil {
 			zap.L().Info("applying override settings", zap.Any("settings", fixtureSet.OverrideSettings))
@@ -58,22 +58,29 @@ to quickly create a Cobra application.`,
 				zap.L().Warn("unable to apply override settings", zap.Error(err))
 			}
 		}
-		// zap.L().Info("after override", zap.Any("match.home_bonus", config.LeagueConfig.GetInt("match.home_bonus")))
-		// zap.L().Info("loaded league config", zap.Any("config", config.LeagueConfig.AllSettings()))
 
 		if tacticsFilePath == "" {
 			tacticsFilePath = filepath.Join(config.LeagueConfig.GetString("paths.config_dir"), config.DefaultTacticsMatrixFileName)
 		}
+
+		zap.L().Info("Reading tactics matrix", zap.String("path", tacticsFilePath))
 		tacticsMatrix, err := config.LoadTactics(tacticsFilePath)
 		if err != nil {
 			zap.L().Warn("unable to load tactics matrix", zap.Error(err))
 		}
+		zap.L().Info("Reading commentary file", zap.String("path", config.LeagueConfig.GetString("match.commentary_file")))
+		commsProvider := commentary.NewLegacyFileCommentaryProvider()
+		if err := commsProvider.Load(config.LeagueConfig.GetString("match.commentary_file")); err != nil {
+			zap.L().Warn("unable to load commentary provider", zap.Error(err))
+		}
 
 		opts := &engine.Options{
-			RngSeed:       rngSeed,
-			TacticsMatrix: tacticsMatrix,
-			AppConfig:     config.LeagueConfig.Get("match").(map[string]any),
+			RngSeed:            rngSeed,
+			TacticsMatrix:      tacticsMatrix,
+			AppConfig:          config.LeagueConfig.Get("match").(map[string]any),
+			CommentaryProvider: commsProvider,
 		}
+
 		for _, f := range fixtureSet.Fixtures {
 			// resolve config paths
 			if f.HomeTeamCode != "" {
@@ -99,19 +106,16 @@ to quickly create a Cobra application.`,
 			}
 			// load teams / rosters
 			homeTeam := utils.Must(config.LoadTeamConfig(f.HomeTeamsheet, f.HomeRoster))
-			homeTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[homeTeam.Code].(string)
-			homeTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[homeTeam.Code].(string)
-			homeTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[homeTeam.Code].(string)
-			homeTeam.StadiumCapacity = config.LeagueConfig.Get("stadium_capacity").(map[string]any)[homeTeam.Code].(int)
+			homeTeam.Name = config.LeagueConfig.GetStringMap("teams")[homeTeam.Code].(string)
+			homeTeam.ManagerName = config.LeagueConfig.GetStringMap("managers")[homeTeam.Code].(string)
+			homeTeam.StadiumName = config.LeagueConfig.GetStringMap("stadiums")[homeTeam.Code].(string)
+			homeTeam.StadiumCapacity = config.LeagueConfig.GetStringMap("stadium_capacity")[homeTeam.Code].(int)
 			awayTeam := utils.Must(config.LoadTeamConfig(f.AwayTeamsheet, f.AwayRoster))
-			awayTeam.Name = config.LeagueConfig.Get("teams").(map[string]any)[awayTeam.Code].(string)
-			awayTeam.ManagerName = config.LeagueConfig.Get("managers").(map[string]any)[awayTeam.Code].(string)
-			awayTeam.StadiumName = config.LeagueConfig.Get("stadiums").(map[string]any)[awayTeam.Code].(string)
-			awayTeam.StadiumCapacity = config.LeagueConfig.Get("stadium_capacity").(map[string]any)[awayTeam.Code].(int)
-			match := &models.Match{
-				HomeTeam: homeTeam,
-				AwayTeam: awayTeam,
-			}
+			awayTeam.Name = config.LeagueConfig.GetStringMap("teams")[awayTeam.Code].(string)
+			awayTeam.ManagerName = config.LeagueConfig.GetStringMap("managers")[awayTeam.Code].(string)
+			awayTeam.StadiumName = config.LeagueConfig.GetStringMap("stadiums")[awayTeam.Code].(string)
+			awayTeam.StadiumCapacity = config.LeagueConfig.GetStringMap("stadium_capacity")[awayTeam.Code].(int)
+			match := models.NewMatch(homeTeam, awayTeam)
 
 			zap.L().Info("running fixture", zap.Any("fixture", f))
 			result, err := engine.Run(match, opts)
@@ -119,11 +123,24 @@ to quickly create a Cobra application.`,
 				return err
 			}
 
+			// apply bonuses
+			bonusConfig := config.LeagueConfig.GetStringMap("bonuses")
+			if bonusConfig != nil {
+				models.NewMatchBonusCalculator(bonusConfig).Apply(result)
+			} else {
+				zap.L().Warn("no valid bonus config found")
+			}
+
+			comms := []string{}
+			if legacyCommentary, ok := opts.CommentaryProvider.(*commentary.LegacyFileCommentaryProvider); ok {
+				comms = legacyCommentary.GetCommentary()
+			}
+
 			fileStore := store.MatchResultFileStore{}
-			err = fileStore.Save(result, store.MatchResultFileStoreOptions{
+			err = fileStore.Save(result, comms, store.MatchResultFileStoreOptions{
 				HeaderText: config.LeagueConfig.GetString("name"),
 				OutputFile: filepath.Join(config.LeagueConfig.GetString("paths.output_dir"), fmt.Sprintf("%s_%s%s", homeTeam.Code, awayTeam.Code, config.DefaultMatchReportOutputFileExt)),
-				FooterText: fmt.Sprintf("%d Produced from esmscli v0.0.0-alpha", result.RngSeed),
+				FooterText: fmt.Sprintf("\n%d Produced from esmscli v0.0.0-alpha", result.RngSeed),
 			})
 			if err != nil {
 				zap.L().Error("unable to save match result", zap.Error(err))

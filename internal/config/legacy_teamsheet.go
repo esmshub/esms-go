@@ -29,7 +29,7 @@ func readTactic(config *models.TeamConfig, text string) error {
 	return nil
 }
 
-func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(string) *models.Player) (*models.PlayerPosition, error) {
+func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(string) *models.Player) (*models.MatchPlayer, error) {
 	parts := strings.Fields(text)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("player data format '%s' is not valid", text)
@@ -42,22 +42,13 @@ func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(strin
 		zap.L().Debug("player found")
 
 		player.Position = pos
-		abs := *player.Ability
-		abs.GoalkeepingAbs = 0
-		abs.TacklingAbs = 0
-		abs.PassingAbs = 0
-		abs.ShootingAbs = 0
-		return &models.PlayerPosition{
-			Name:        name,
-			Position:    pos,
-			BaseAbility: player.Ability,
-			Ability:     &abs,
-			Stats: &models.PlayerGameStats{
-				IsInjured:   player.GetIsInjured(),
-				IsSuspended: player.GetIsSuspended(),
-			},
-			Fatigue: 1,
-		}, nil
+		matchPlayer := models.NewMatchPlayer(player)
+		// matchPlayer.Ability.GoalkeepingAbs = 0
+		// matchPlayer.Ability.TacklingAbs = 0
+		// matchPlayer.Ability.PassingAbs = 0
+		// matchPlayer.Ability.ShootingAbs = 0
+		// matchPlayer.Ability.Condition = 1.0
+		return matchPlayer, nil
 	} else {
 		return nil, fmt.Errorf("player %s does not exist in the roster", name)
 	}
@@ -66,9 +57,7 @@ func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(strin
 func readLineup(config *models.TeamConfig, text string, findPlayer func(string) *models.Player) error {
 	zap.L().Debug("reading lineup")
 
-	config.Lineup = []*models.PlayerPosition{}
 	lines := strings.Split(text, "\n")
-
 	for idx, record := range lines {
 		player, err := parsePlayer(strings.TrimSpace(record), idx+1, false, findPlayer)
 		if err != nil {
@@ -76,7 +65,7 @@ func readLineup(config *models.TeamConfig, text string, findPlayer func(string) 
 		}
 
 		player.IsActive = true
-		config.Lineup = append(config.Lineup, player)
+		config.Players = append(config.Players, player)
 	}
 	return nil
 }
@@ -84,16 +73,15 @@ func readLineup(config *models.TeamConfig, text string, findPlayer func(string) 
 func readSubstitutions(config *models.TeamConfig, text string, minSubs int, maxSubs int, findPlayer func(string) *models.Player) error {
 	zap.L().Debug("reading subs")
 
-	config.Subs = []*models.PlayerPosition{}
 	lines := strings.Split(text, "\n")
-
 	for idx, record := range lines {
 		player, err := parsePlayer(strings.TrimSpace(record), idx+1, true, findPlayer)
 		if err != nil {
 			return err
 		}
 
-		config.Subs = append(config.Subs, player)
+		player.IsSub = true
+		config.Players = append(config.Players, player)
 	}
 	return nil
 }
@@ -106,15 +94,15 @@ func readPenaltyTaker(config *models.TeamConfig, text string) error {
 	}
 
 	pk := strings.TrimSpace(lines[1])
-	nameComparer := func(p *models.PlayerPosition) bool {
-		return strings.EqualFold(p.Name, pk)
+	nameComparer := func(p *models.MatchPlayer) bool {
+		return strings.EqualFold(p.GetName(), pk)
 	}
-	i := slices.IndexFunc(config.Lineup, nameComparer)
+	i := slices.IndexFunc(config.GetStarters(), nameComparer)
 	if i == -1 {
 		return fmt.Errorf("PK taker must be in the starting lineup")
 	}
 
-	config.PlayerRoles["PK"] = config.Lineup[i]
+	config.PlayerRoles[types.RolePenaltyTaker] = config.GetStarters()[i]
 	return nil
 }
 
@@ -124,16 +112,16 @@ func readConditionals(config *models.TeamConfig, text string) error {
 	for _, l := range lines {
 		cond := strings.ToUpper(strings.TrimSpace(l))
 		var parse ConditionalParser = nil
-		if strings.HasPrefix(cond, types.AGG_ACTION) {
-			parse = conditionalParsers[types.AGG_ACTION]
-		} else if strings.HasPrefix(cond, types.CHANGEAGG_ACTION) {
-			parse = conditionalParsers[types.CHANGEAGG_ACTION]
-		} else if strings.HasPrefix(cond, types.CHANGEPOS_ACTION) {
-			parse = conditionalParsers[types.CHANGEPOS_ACTION]
-		} else if strings.HasPrefix(cond, types.SUB_ACTION) {
-			parse = conditionalParsers[types.SUB_ACTION]
-		} else if strings.HasPrefix(cond, types.TACTIC_ACTION) {
-			parse = conditionalParsers[types.TACTIC_ACTION]
+		if strings.HasPrefix(cond, types.AggressionAction) {
+			parse = conditionalParsers[types.AggressionAction]
+		} else if strings.HasPrefix(cond, types.ChangeAggressionAction) {
+			parse = conditionalParsers[types.ChangeAggressionAction]
+		} else if strings.HasPrefix(cond, types.ChangePositionAction) {
+			parse = conditionalParsers[types.ChangePositionAction]
+		} else if strings.HasPrefix(cond, types.SubstituteAction) {
+			parse = conditionalParsers[types.SubstituteAction]
+		} else if strings.HasPrefix(cond, types.ChangeTacticAction) {
+			parse = conditionalParsers[types.ChangeTacticAction]
 		} else {
 			return fmt.Errorf("unknown conditional: %s", cond)
 		}
@@ -175,8 +163,7 @@ func LoadLegacyTeamsheet(teamsheetFile string, findPlayer func(string) *models.P
 	}
 
 	config := &models.TeamConfig{
-		PlayerRoles: make(map[string]*models.PlayerPosition),
-		TeamAbility: &models.PlayerAbilities{},
+		PlayerRoles: make(map[string]*models.MatchPlayer),
 	}
 	if err := readTactic(config, sections[0]); err != nil {
 		return nil, err
