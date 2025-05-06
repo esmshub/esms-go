@@ -11,7 +11,7 @@ import (
 )
 
 type Validator interface {
-	Validate(*models.TeamConfig) error
+	Validate(*models.MatchTeam) error
 }
 
 type TeamConfigValidator struct {
@@ -41,30 +41,30 @@ func IsValidTactic(tactic string) bool {
 	})
 }
 
-func (v *TeamConfigValidator) validateStartingLineup(players []*models.PlayerPosition) error {
+func (v *TeamConfigValidator) validateStartingLineup(players []*models.MatchPlayer) error {
 	if len(players) != 11 {
 		return fmt.Errorf("expected 11 first team players, got %d", len(players))
 	}
 
 	for idx, p := range players {
-		zap.L().Debug("validate player position", zap.String("pos", p.Position))
-		if !IsValidPosition(p.Position) {
-			return fmt.Errorf("player %s has an illegal position (%s)", p.Name, p.Position)
-		} else if idx == 0 && p.Position != types.POSITION_GK {
+		zap.L().Debug("validate player position", zap.String("pos", p.GetPosition()))
+		if !IsValidPosition(p.GetPosition()) {
+			return fmt.Errorf("player %s has an illegal position (%s)", p.GetName(), p.GetPosition())
+		} else if idx == 0 && p.GetPosition() != types.PositionGK {
 			return fmt.Errorf("player 1 must be a GK")
-		} else if p.Position == types.POSITION_GK && idx > 0 {
-			return fmt.Errorf("player %s cannot be a GK", p.Name)
-		} else if p.Stats.IsInjured {
-			return fmt.Errorf("player %s is injured", p.Name)
-		} else if p.Stats.IsSuspended {
-			return fmt.Errorf("player %s is suspended", p.Name)
+		} else if p.GetPosition() == types.PositionGK && idx > 0 {
+			return fmt.Errorf("player %s cannot be a GK", p.GetName())
+		} else if p.GetIsInjured() {
+			return fmt.Errorf("player %s is injured", p.GetName())
+		} else if p.GetIsSuspended() {
+			return fmt.Errorf("player %s is suspended", p.GetName())
 		}
 	}
 
 	return nil
 }
 
-func (v *TeamConfigValidator) validateSubs(subs []*models.PlayerPosition) error {
+func (v *TeamConfigValidator) validateSubs(subs []*models.MatchPlayer) error {
 	count := len(subs)
 	if count < v.MinSubs {
 		return fmt.Errorf("expected at least %d subs, found %d", v.MinSubs, count)
@@ -75,51 +75,52 @@ func (v *TeamConfigValidator) validateSubs(subs []*models.PlayerPosition) error 
 	return nil
 }
 
-func (v *TeamConfigValidator) validateFormation(tc *models.TeamConfig) error {
+func (v *TeamConfigValidator) validateFormation(team *models.MatchTeam) error {
 	positionCount := make(map[string]int)
-	for _, p := range tc.Lineup {
-		positionCount[p.Position]++
+	for _, p := range team.GetStarters() {
+		positionCount[p.GetPosition()]++
 	}
-	defMids := positionCount[types.POSITION_DM]
-	mids := positionCount[types.POSITION_MF]
-	attMids := positionCount[types.POSITION_AM]
+	defMids := positionCount[types.PositionDM]
+	mids := positionCount[types.PositionMF]
+	attMids := positionCount[types.PositionAM]
 
-	if positionCount[types.POSITION_DF] < v.MinDF {
-		return fmt.Errorf("cannot field less than %d %ss", v.MinDF, types.POSITION_DF)
-	} else if positionCount[types.POSITION_DF] > v.MaxDF {
-		return fmt.Errorf("cannot field more than %d %ss", v.MaxDF, types.POSITION_DF)
-	} else if positionCount[types.POSITION_DM] > v.MaxDM {
-		return fmt.Errorf("cannot field more than %d %ss", v.MaxDM, types.POSITION_DM)
-	} else if positionCount[types.POSITION_MF] > v.MaxMF {
-		return fmt.Errorf("cannot field more than %d %ss", v.MaxMF, types.POSITION_MF)
-	} else if positionCount[types.POSITION_AM] > v.MaxAM {
-		return fmt.Errorf("cannot field more than %d %ss", v.MaxAM, types.POSITION_AM)
+	if positionCount[types.PositionDF] < v.MinDF {
+		return fmt.Errorf("cannot field less than %d %ss", v.MinDF, types.PositionDF)
+	} else if positionCount[types.PositionDF] > v.MaxDF {
+		return fmt.Errorf("cannot field more than %d %ss", v.MaxDF, types.PositionDF)
+	} else if positionCount[types.PositionDM] > v.MaxDM {
+		return fmt.Errorf("cannot field more than %d %ss", v.MaxDM, types.PositionDM)
+	} else if positionCount[types.PositionMF] > v.MaxMF {
+		return fmt.Errorf("cannot field more than %d %ss", v.MaxMF, types.PositionMF)
+	} else if positionCount[types.PositionAM] > v.MaxAM {
+		return fmt.Errorf("cannot field more than %d %ss", v.MaxAM, types.PositionAM)
 	} else if (mids + defMids + attMids) < v.MinMF {
 		return fmt.Errorf("cannot field less than %d midfielders", v.MinMF)
 	} else if (mids + defMids + attMids) > v.MaxMF {
 		return fmt.Errorf("cannot field more than %d midfielders", v.MaxMF)
-	} else if positionCount[types.POSITION_FW] < v.MinFW {
-		return fmt.Errorf("cannot field less than %d %ss", v.MinFW, types.POSITION_FW)
-	} else if positionCount[types.POSITION_FW] > v.MaxFW {
-		return fmt.Errorf("cannot field more than %d %ss", v.MaxFW, types.POSITION_FW)
+	} else if positionCount[types.PositionFW] < v.MinFW {
+		return fmt.Errorf("cannot field less than %d %ss", v.MinFW, types.PositionFW)
+	} else if positionCount[types.PositionFW] > v.MaxFW {
+		return fmt.Errorf("cannot field more than %d %ss", v.MaxFW, types.PositionFW)
 	}
-
-	formationStr := fmt.Sprintf("%d-%d-%d-%d-%d %s", positionCount[types.POSITION_DF], defMids, mids, attMids, positionCount[types.POSITION_FW], tc.Tactic)
-	tc.Formation = strings.ReplaceAll(formationStr, "-0", "")
 
 	return nil
 }
 
-func (v *TeamConfigValidator) Validate(tc *models.TeamConfig) error {
-	if !IsValidTactic(tc.Tactic) {
-		return fmt.Errorf("tactic '%s' is not a supported, expected one of %#v", tc.Tactic, v.supportedTactics)
+func (v *TeamConfigValidator) Validate(team *models.MatchTeam) error {
+	if !IsValidTactic(team.GetTactic()) {
+		return fmt.Errorf("tactic '%s' is not a supported, expected one of %#v", team.GetTactic(), v.supportedTactics)
 	}
 
-	if err := v.validateStartingLineup(tc.Lineup); err != nil {
+	if err := v.validateStartingLineup(team.GetStarters()); err != nil {
 		return err
 	}
 
-	if err := v.validateSubs(tc.Subs); err != nil {
+	if err := v.validateSubs(team.GetSubs()); err != nil {
+		return err
+	}
+
+	if err := v.validateFormation(team); err != nil {
 		return err
 	}
 

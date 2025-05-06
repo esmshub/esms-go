@@ -34,6 +34,7 @@ func Random(value int) int {
 	return r.IntN(value)
 }
 
+// Float64 returns, as a float64, a pseudo-random number in the half-open interval [0.0,1.0).
 func RandomF() float64 {
 	return r.Float64()
 }
@@ -41,4 +42,11 @@ func RandomF() float64 {
 // RandomRange generates a random number in the range [min, max)
 func RandomRange(min, max int) int {
 	return r.IntN(max-min) + min
+}
+
+// Shuffle pseudo-randomizes the order of elements.
+// n is the number of elements. Shuffle panics if n < 0.
+// swap swaps the elements with indexes i and j.
+func Shuffle(n int, swap func(i, j int)) {
+	r.Shuffle(n, swap)
 }

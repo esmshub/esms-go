@@ -1,10 +1,10 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
+Copyright © 2025 James Howe <james@esmshub.com>
 */
 package main
 
 import (
-	"github.com/esmshub/esms-go/cli/cmd"
+	"github.com/esmshub/esms-go/cmd/cli/cmd"
 	"go.uber.org/zap"
 )
 

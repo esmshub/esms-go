@@ -1,0 +1,88 @@
+Home_Bonus = 400
+Games = SSL2001_Division_1
+Attendances_Pack = 1
+Aggression = 1
+Conceded_Sub_Apps = 1
+Minutes = 1
+Cup = 0
+Extra_Time = 0
+Fitness = 0
+FitFactor = 25
+Fit_TSC = 65
+Min_Subs = 3
+Bench_Size = 7
+Min_DF = 3
+Max_DF = 5
+Max_DM = 3
+Min_MF = 1
+Max_MF = 6
+Max_AM = 3
+Min_FW = 0
+Max_FW = 4
+Max_Skill = 27
+Positions = 1
+Referees = 1
+Reports_Style = 1
+Reports_Type = 5
+Rerate0_999 = 1
+Skill_Abs = 0
+Stats_Pack = 1
+Short_Sheet = 1
+T_Tactic = 100
+Tactic_7 = 1
+Tactical = 1
+Vidi = 1
+Team_Data = 1
+Wages = 55
+DP_for_Yellow = 2
+DP_for_Red = 10
+Suspension_margin = 10
+Max_injury_length = 8
+
+Abilities:
+AB_Goal = 30
+AB_Assist = 21  
+AB_Victory_Random = 30
+AB_Clean_Sheet = 20
+AB_Ktk = 15
+AB_Kps = 12
+AB_Sht_On = 8
+AB_Sht_Off = 0
+AB_Sav = 10
+AB_OG = -10
+AB_Defeat_Random = -30
+AB_Concede = -8
+AB_Yellow = -3
+AB_Red = -10
+
+Teams:
+tta = Test_Team_A
+ttb = Test_Team_B
+ttc = Team_Team_C
+ttd = Test_Team_D
+tte = Test_Team_E
+ttf = Team_Team_F
+
+Managers:
+tta = Steven_Gerrard
+ttb = Philippe_Clement
+ttc = Pedro_Caixinha
+ttd = Graeme_Murty
+tte = Mark_Warburton
+ttf = Ally_McCoist
+
+Stadiums:
+tta = Ibrox
+ttb = Celtic_Park
+ttc = Pittodie
+ttd = Easter_Road
+tte = Tynecastle
+ttf = Tony_Macaroni_Stadium
+
+Stadium_Capacity:
+tta = 51500
+ttb = 59456
+ttc = 15324
+ttd = 20433
+tte = 25043
+ttf = 12857

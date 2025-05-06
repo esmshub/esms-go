@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ type Config interface {
 	GetString(string) string
 	GetBool(string) bool
 	Get(string) any
+	GetStringMap(string) map[string]any
 	Set(string, any)
 	MergeConfigMap(map[string]any) error
 	AllSettings() map[string]any
@@ -54,6 +56,21 @@ func init() {
 	conf.SetDefault("match.max_am", 3)
 	conf.SetDefault("match.min_fw", 0)
 	conf.SetDefault("match.max_fw", 4)
+	conf.SetDefault("match.commentary_file", path.Join(GetConfigDir(), "language.dat"))
+	// conf.SetDefault("bonuses.goal", 30)
+	// conf.SetDefault("bonuses.assist", 21)
+	// conf.SetDefault("bonuses.victory", 30)
+	// conf.SetDefault("bonuses.clean_sheet", 20)
+	// conf.SetDefault("bonuses.key_tackle", 15)
+	// conf.SetDefault("bonuses.key_pass", 12)
+	// conf.SetDefault("bonuses.shot_on_target", 8)
+	// conf.SetDefault("bonuses.shot_off_target", 0)
+	// conf.SetDefault("bonuses.save", 10)
+	// conf.SetDefault("bonuses.own_goal", -10)
+	// conf.SetDefault("bonuses.defeat", -30)
+	// conf.SetDefault("bonuses.conceded", -8)
+	// conf.SetDefault("bonuses.cautioned", -3)
+	// conf.SetDefault("bonuses.sent_off", -10)
 	// legacy support
 	conf.RegisterAlias("games", "name")
 	conf.RegisterAlias("abbreviations", "teams")
@@ -69,6 +86,21 @@ func init() {
 	conf.RegisterAlias("max_am", "match.max_am")
 	conf.RegisterAlias("min_fw", "match.min_fw")
 	conf.RegisterAlias("max_fw", "match.max_fw")
+	conf.RegisterAlias("bonuses", "abilities")
+	// conf.RegisterAlias("bonuses.save", "abilities.ab_sav")
+	// conf.RegisterAlias("bonuses.goal", "abilities.ab_goal")
+	// conf.RegisterAlias("bonuses.assist", "abilities.ab_assist")
+	// conf.RegisterAlias("bonuses.victory", "abilities.ab_victory_random")
+	// conf.RegisterAlias("bonuses.clean_sheet", "abilities.ab_clean_sheet")
+	// conf.RegisterAlias("bonuses.key_tackle", "abilities.ab_ktk")
+	// conf.RegisterAlias("bonuses.key_pass", "abilities.ab_kps")
+	// conf.RegisterAlias("bonuses.shot_on_target", "abilities.ab_sht_on")
+	// conf.RegisterAlias("bonuses.shot_off_target", "abilities.ab_sht_off")
+	// conf.RegisterAlias("bonuses.own_goal", "abilities.ab_og")
+	// conf.RegisterAlias("bonuses.defeat", "abilities.ab_defeat_random")
+	// conf.RegisterAlias("bonuses.conceded", "abilities.ab_concede")
+	// conf.RegisterAlias("bonuses.cautioned", "abilities.ab_yellow")
+	// conf.RegisterAlias("bonuses.sent_off", "abilities.ab_red")
 }
 
 func LoadNearestLeagueConfig() error {
@@ -82,11 +114,11 @@ func LoadNearestLeagueConfig() error {
 	if configDir := GetConfigDir(); configDir != "" {
 		rootPaths = append(rootPaths, configDir)
 	}
-	zap.L().Info("Root paths", zap.Strings("paths", rootPaths))
+	zap.L().Debug("Root paths", zap.Strings("paths", rootPaths))
 	for _, ext := range LeagueConfigSupportedFormats {
 		for _, dir := range rootPaths {
 			configFilePath := filepath.Join(dir, fmt.Sprintf("%s%s", DefaultLeagueConfigFileName, ext))
-			zap.L().Info("Checking for config file", zap.String("path", configFilePath))
+			zap.L().Debug("Checking for config file", zap.String("path", configFilePath))
 			if utils.FileExists(configFilePath) {
 				return LoadLeagueConfig(configFilePath)
 			}
@@ -98,14 +130,13 @@ func LoadNearestLeagueConfig() error {
 
 func LoadLeagueConfig(filePath string) error {
 	var err error
-	fmt.Printf("Reading config from %s\n", filePath)
 	fileExt := filepath.Ext(filePath)
 	if fileExt == "" {
 		return errors.New("config file extension is missing")
 	} else if fileExt == ".dat" {
 		// treat DAT file as properties format
+		zap.L().Info("Reading league config", zap.String("path", filePath))
 		zap.L().Warn("Legacy DAT file detected")
-		zap.L().Info("Reading league config...")
 		prefix := ""
 		_, err = utils.ReadFile(filePath, func(line string, row int) error {
 			if strings.HasSuffix(line, ":") {
@@ -132,7 +163,7 @@ func LoadLeagueConfig(filePath string) error {
 			return nil
 		})
 	} else {
-		zap.L().Info("Reading league config...")
+		zap.L().Info("Reading league config", zap.String("path", filePath))
 		LeagueConfig.(*viper.Viper).SetConfigFile(filePath)
 		err = LeagueConfig.(*viper.Viper).ReadInConfig()
 	}

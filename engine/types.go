@@ -1,23 +1,32 @@
 package engine
 
 import (
+	"github.com/esmshub/esms-go/engine/commentary"
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/engine/types"
 )
 
 type Options struct {
-	MatchType     types.MATCHTYPE
-	TacticsMatrix *models.TacticsMatrix
-	RngSeed       uint64
-	AppConfig     map[string]any
+	MatchType          types.MATCHTYPE
+	TacticsMatrix      *models.TacticsMatrix
+	CommentaryProvider commentary.CommentaryProvider
+	RngSeed            uint64
+	AppConfig          map[string]any
+	Bonuses            map[string]any
 }
 
-const MAX_SKILL_VALUE = 20
-const MAX_TEAMSKILL_VALUE = 220
+const MaxSkillValue = 20
+const MaxTeamSkillValue = 220
 
-const POS_TK_WEIGHT = 0.3
-const POS_PS_WEIGHT = 0.55
-const POS_SH_WEIGHT = 0.15
+const PossessionTacklingWeight = 0.3
+const PossessionPassingWeight = 0.55
+const PossessionShootingWeight = 0.15
 
-const MINS_PER_HALF = 45
-const DEFAULT_AGG_LEVEL = 10
+const MinsPerHalf = 45
+const DefAggressionLevel = 10
+
+// var EVENT_FLOWS = map[string]flows.Flow{
+// 	types.SHOT_EVENT:     flows.ShotFlow,
+// 	types.TA:     flows.FoulFlow,
+// 	types.TACKLE_EVENT:   flows.TackleFlow,
+// }

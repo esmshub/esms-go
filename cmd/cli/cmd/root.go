@@ -6,7 +6,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/esmshub/esms-go/cli/logger"
+	"github.com/esmshub/esms-go/cmd/cli/logger"
 	"github.com/spf13/cobra"
 )
 
