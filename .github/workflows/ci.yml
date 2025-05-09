@@ -1,0 +1,92 @@
+---
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_tag:
+        description: "Forces tag creation"
+        required: false
+        default: false
+        type: boolean
+
+  push:
+    paths-ignore:
+      - README.md
+      - .gitignore
+      - .vscode/**
+      - .github/workflows/release.yml
+      - data/**
+      - .goreleaser.yml
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      go_version: ${{ steps.get_go_version.outputs.go_version }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: get_go_version
+        name: Get Golang version
+        run: |
+          set -euo pipefail
+
+          go_version=$(sed -n 3p ${GITHUB_WORKSPACE}/go.mod | cut -d " " -f2)
+          echo "Golang version: ${go_version}"
+          echo "go_version=$go_version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: preflight
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        # with:
+        #   token: ${{ secrets.PAT }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ needs.preflight.outputs.go_version }}
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Build snapshot
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          args: release --snapshot --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-snapshot
+          path: dist/
+
+      # - name: Update version
+      #   run: |
+      #     MAJOR_MINOR=$(cat VERSION)
+      #     DIST_VERSION="v$MAJOR_MINOR.${{ github.run_number }}${{ github.run_attempt }}"
+      #     if [[ "${{ github.ref_name }}" != "main" ]]; then
+      #       DIST_VERSION="$DIST_VERSION-dev"
+      #     fi
+      #     echo "$DIST_VERSION"
+      #     echo "DIST_VERSION=$DIST_VERSION" >> "$GITHUB_ENV"
+
+      # - name: Create tag
+      #   uses: actions/github-script@v5
+      #   if: ${{ inputs.force_tag || github.ref_name == 'main' }}
+      #   with:
+      #     script: |
+      #       github.rest.git.createRef({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         ref: 'refs/tags/' + process.env.DIST_VERSION,
+      #         sha: context.sha
+      #       })

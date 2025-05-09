@@ -1,6 +1,6 @@
 module github.com/esmshub/esms-go
 
-go 1.23.4
+go 1.24.1
 
 require (
 	github.com/esmshub/esms-go/engine v0.0.0-alpha
@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
