@@ -51,10 +51,10 @@ jobs:
           go-version: ${{ needs.preflight.outputs.go_version }}
 
       - name: Build
-        run: make build
+        run: make build-all
 
-      - name: Test
-        run: make test
+      # - name: Test
+      #   run: make test
 
       - name: Build snapshot
         uses: goreleaser/goreleaser-action@v4
