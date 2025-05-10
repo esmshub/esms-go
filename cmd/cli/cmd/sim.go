@@ -26,13 +26,55 @@ var (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "sim",
-	Short: "Run a simulation",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Simulate a round of fixtures",
+	Long: `Simulate each match from the provided fixtureset and generate a match report.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+A valid fixtureset file must contain a name and at least one fixture. Each fixture must 
+define either the teamsheet filename or the team code of the home and away side. If
+specifying the teamsheet filename, relative paths should be relative to the value of 
+paths.teamsheet_dir config setting. If specifying the team code, the teamsheet name 
+will be assumed to be '<code>sht.txt' and again relative to the value of paths.teamsheet_dir.
+
+Fixtureset files can be in either JSON or YAML format, examples below:
+
+fixtures.yml
+----------------------------
+name: Round 1
+fixtures:
+  - home_teamsheet: ransht.txt
+    away_teamsheet: celsht.txt
+
+fixtures.json
+----------------------------
+{
+  "name": "Round 1",
+  "fixtures": [
+    {
+      "home_team": "ran",
+      "away_team": "cel"
+    }
+  ]
+}
+----------------------------
+
+A tactics matrix file must be provided with the '-t/--tactics' flag. If no '-c/--config-file' 
+flag is provided, the nearest valid config file will be loaded.
+
+Configuration settings can overridden at fixtureset level by declaring an 'override_settings' block
+in the fixtureset file. This block should be a map of config settings, for example:
+
+fixtures.yml
+---------------------------------
+name: Cup Quarter Final - 2nd Leg
+fixtures:
+  - home_teamsheet: ransht.txt
+    away_teamsheet: celsht.txt
+override_settings:
+  paths:
+    teamsheet_dir: <custom-path>/teamsheets
+  match:
+    extra_time: true
+---------------------------------`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configFilePath, err := cmd.Flags().GetString("config-file")
 		if err != nil {
@@ -50,7 +92,7 @@ to quickly create a Cobra application.`,
 			zap.L().Warn("using default config")
 		}
 
-		fixtureSet := utils.Must(config.LoadFixtureset[config.Fixtureset](fixtureSetFilePath))
+		fixtureSet := utils.Must(config.LoadFixtureset(fixtureSetFilePath))
 		if fixtureSet.OverrideSettings != nil {
 			zap.L().Info("applying override settings", zap.Any("settings", fixtureSet.OverrideSettings))
 			err := config.LeagueConfig.MergeConfigMap(fixtureSet.OverrideSettings)

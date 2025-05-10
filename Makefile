@@ -3,11 +3,7 @@ export CGO_ENABLED=0
 export GOARCH=amd64
 export GOOS=darwin
 
-TARGET=esmscli
-
-ifndef VERSION
-$(error VERSION is not set)
-endif
+TARGET=esmsgo
 
 # Remove debug information for release builds
 ifeq ($(MAKECMDGOALS), build)
@@ -19,9 +15,17 @@ else
 endif
 
 build:
-	@BUILD_DIR=$(OUTPUT_DIR)/$(GOOS)/$(GOARCH) && \
-	OUTPUT_FILE=$$BUILD_DIR/$(TARGET)$(FILE_EXT) && \
+	@echo "Building for $(GOOS)_$(GOARCH)..." && \
+	FILE_EXT=""; \
+	if [ "$$GOOS" = "windows" ]; then FILE_EXT=".exe"; fi; \
+	BUILD_DIR=$(OUTPUT_DIR)/$(GOOS)/$(GOARCH) && \
+	OUTPUT_FILE=$$BUILD_DIR/$(TARGET)$$FILE_EXT && \
+	echo "Output file: $$OUTPUT_FILE" && \
 	rm -rf $$BUILD_DIR && \
+	go mod tidy && \
+	git diff --exit-code go.mod go.sum && \
+	go mod download && \
+	go mod verify && \
 	go build -ldflags=$(LDFLAGS) -tags $(TARGET) -o $$OUTPUT_FILE ./cmd/cli
 
 package:
@@ -33,18 +37,20 @@ package:
 		zip -rj "$$PKG_DIR/$(TARGET)_$(VERSION)_$(GOOS)_$(GOARCH).zip" "$$PKG_DIR"; \
 	fi
 
+build-all:
+	@$(MAKE) GOOS=windows build
+	@$(MAKE) GOOS=windows GOARCH=386 build
+	@$(MAKE) GOOS=linux build
+	@$(MAKE) GOOS=darwin build
+
 win:
-	@echo "Building for Windows (x64)..."
 	@$(MAKE) FILE_EXT=.exe GOOS=windows build package
 
 win32:
-	@echo "Building for Windows (x86)..."
 	@$(MAKE) FILE_EXT=.exe GOOS=windows GOARCH=386 build package
 
 linux:
-	@echo "Building for Linux..."
 	@$(MAKE) GOOS=linux build package
 
 mac:
-	@echo "Building for MacOS..."
 	@$(MAKE) GOOS=darwin build package

@@ -1,16 +1,29 @@
 before:
   hooks:
     # You may remove this if you don't use go modules.
-    - go mod tidy
+    - go mod tidy && git diff --exit-code go.mod go.sum
+    - go mod download && go mod verify
     # you may remove this if you don't need go generate
     # - go generate ./...
 
 builds:
   - main: ./cmd/cli
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - 386
     binary: >-
       {{ replace .ProjectName "-" "" }}
     env:
       - CGO_ENABLED=0
+    ignore:
+      - goos: darwin
+        goarch: 386
+      - goos: linux
+        goarch: 386
 
 archives:
   - format: tar.gz

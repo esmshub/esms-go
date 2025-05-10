@@ -8,7 +8,9 @@ import (
 	"go.uber.org/zap"
 )
 
+var version = "dev"
+
 func main() {
-	cmd.Execute()
+	cmd.Execute(version)
 	defer zap.L().Sync()
 }
