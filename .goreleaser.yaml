@@ -30,7 +30,7 @@ archives:
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ replace .ProjectName "-" "" }}_
-      {{- lowercase .Os }}_{{ .Arch }}
+      {{- tolower .Os }}_{{ .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives
     format_overrides:
