@@ -35,7 +35,8 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use: "esmsgo",
 	Long: `ESMS Go! is a unified command-line interface for the ESMS fantasy football engine that 
-wraps the core match engine and supporting utilities that were traditionally separate tools.`,
+wraps the core match engine and supporting utilities that were traditionally separate
+tools.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Configure(flagVerbose)
 		if cmd.Name() != "help" {
