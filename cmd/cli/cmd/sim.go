@@ -197,7 +197,7 @@ be enabled this fixture set only.
 			err = fileStore.Save(result, comms, store.MatchResultFileStoreOptions{
 				HeaderText: config.LeagueConfig.GetString("name"),
 				OutputFile: filepath.Join(config.LeagueConfig.GetString("paths.output_dir"), fmt.Sprintf("%s_%s%s", homeTeam.Code, awayTeam.Code, config.DefaultMatchReportOutputFileExt)),
-				FooterText: fmt.Sprintf("\n%d Produced from %s %s", result.RngSeed, cmd.Root().Use, cmd.Root().Version),
+				FooterText: fmt.Sprintf("\n%d Produced from %s v%s", result.RngSeed, cmd.Root().Use, cmd.Root().Version),
 			})
 			if err != nil {
 				zap.L().Error("unable to save match result", zap.Error(err))
