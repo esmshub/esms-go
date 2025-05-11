@@ -98,7 +98,7 @@ func init() {
 	conf.SetDefault("teams", map[string]string{})
 	conf.SetDefault("managers", map[string]string{})
 	conf.SetDefault("stadiums", map[string]string{})
-	conf.SetDefault("stadium_capacity", map[string]int{})
+	conf.SetDefault("capacities", map[string]int{})
 	bonusConfig := map[string]int{
 		"home_adv":        100,
 		"goal":            30,
