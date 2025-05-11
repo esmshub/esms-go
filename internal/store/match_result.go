@@ -77,11 +77,12 @@ func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentar
 		lines = append(lines, fmt.Sprintf("\nReferee: %s (%s)", result.Referee.Name, result.Referee.Nat))
 	}
 	// print commentary
-	lines = append(lines, "\n*************  MATCH COMMENTARY  ****************")
-	lines = append(lines, strings.Join(commentary, ""))
-	lines = append(lines, "")
+	if len(commentary) > 0 {
+		lines = append(lines, "\n*************  MATCH COMMENTARY  ****************")
+		lines = append(lines, strings.Join(commentary, ""))
+	}
 	// print match details
-	lines = append(lines, "Match Details")
+	lines = append(lines, "\nMatch Details")
 	lines = append(lines, strings.Repeat("-", 91))
 	lines = append(lines, fmt.Sprintf("%-22s: %s", "Venue", result.HomeTeam.GetStadiumName()))
 	lines = append(lines, fmt.Sprintf("%-22s: %d", "Attendance", 0))

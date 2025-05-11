@@ -24,8 +24,5 @@ func (m *MatchStatsUpdater) Update(event string, subject Subject) {
 func (m *MatchStatsUpdater) Visit(team *MatchTeam) {
 	for _, p := range team.GetActive() {
 		p.AddMinute()
-		if p.GetName() == "FW2" {
-			zap.L().Info("player minute", zap.String("name", p.GetName()), zap.Int("minute", p.GetStats().MinutesPlayed))
-		}
 	}
 }

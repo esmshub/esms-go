@@ -68,5 +68,30 @@ func LoadTeamConfig(teamsheetFile, rosterFile string) (*models.TeamConfig, error
 		return nil, err
 	}
 
+	teamsMap := LeagueConfig.GetStringMap("teams")
+	teamName, nameOk := teamsMap[config.Code].(string)
+	if !nameOk {
+		return nil, fmt.Errorf("teams.%s config not set", config.Code)
+	}
+	config.Name = teamName
+	managersMap := LeagueConfig.GetStringMap("managers")
+	managerName, managerOk := managersMap[config.Code].(string)
+	if !managerOk {
+		return nil, fmt.Errorf("manager.%s config not set", config.Code)
+	}
+	config.ManagerName = managerName
+	stadiumsMap := LeagueConfig.GetStringMap("stadiums")
+	stadiumName, stadiumOk := stadiumsMap[config.Code].(string)
+	if !stadiumOk {
+		return nil, fmt.Errorf("stadium.%s config not set", config.Code)
+	}
+	config.StadiumName = stadiumName
+	stadiumCapMap := LeagueConfig.GetStringMap("stadium_capacity")
+	stadiumCap, stadiumCapOk := stadiumCapMap[config.Code].(int)
+	if !stadiumCapOk {
+		return nil, fmt.Errorf("stadium_capacity.%s config not set", config.Code)
+	}
+	config.StadiumCapacity = stadiumCap
+
 	return config, nil
 }

@@ -45,7 +45,7 @@ func Run(match *models.Match, options *Options) (*models.MatchResult, error) {
 		rng.Seed(options.RngSeed)
 	}
 	if match.Referee == nil {
-		zap.L().Info("No referee assigned, using default")
+		zap.L().Warn("No referee assigned, using default")
 		match.Referee = models.NewDefaultReferee()
 	}
 

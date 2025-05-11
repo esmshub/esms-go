@@ -32,6 +32,38 @@ const DefaultMatchReportOutputFileExt = ".txt"
 
 var LeagueConfig Config = viper.New()
 
+var configKeyAliases = map[string]string{
+	"abbreviations":               "teams",
+	"abilities":                   "bonuses",
+	"abilities.ab_sav":            "bonuses.save",
+	"abilities.ab_goal":           "bonuses.goal",
+	"abilities.ab_assist":         "bonuses.assist",
+	"abilities.ab_victory_random": "bonuses.victory",
+	"abilities.ab_clean_sheet":    "bonuses.clean_sheet",
+	"abilities.ab_ktk":            "bonuses.key_tackle",
+	"abilities.ab_kps":            "bonuses.key_pass",
+	"abilities.ab_sht_on":         "bonuses.shot_on_target",
+	"abilities.ab_sht_off":        "bonuses.shot_off_target",
+	"abilities.ab_og":             "bonuses.own_goal",
+	"abilities.ab_defeat_random":  "bonuses.defeat",
+	"abilities.ab_concede":        "bonuses.conceded",
+	"abilities.ab_yellow":         "bonuses.cautioned",
+	"abilities.ab_red":            "bonuses.sent_off",
+	"home_bonus":                  "bonuses.home_adv",
+	"games":                       "name",
+	"extra_time":                  "match.extra_time",
+	"min_subs":                    "match.min_subs",
+	"bench_size":                  "match.max_subs",
+	"min_df":                      "match.min_df",
+	"max_df":                      "match.max_df",
+	"max_dm":                      "match.max_dm",
+	"min_mf":                      "match.min_mf",
+	"max_mf":                      "match.max_mf",
+	"max_am":                      "match.max_am",
+	"min_fw":                      "match.min_fw",
+	"max_fw":                      "match.max_fw",
+}
+
 func init() {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -40,67 +72,51 @@ func init() {
 
 	conf := LeagueConfig.(*viper.Viper)
 	conf.SetDefault("name", "ESMS League")
-	conf.SetDefault("paths.roster_dir", exePath)
-	conf.SetDefault("paths.fixtureset_dir", exePath)
-	conf.SetDefault("paths.teamsheet_dir", exePath)
-	conf.SetDefault("paths.output_dir", exePath)
-	conf.SetDefault("match.home_bonus", 100)
-	conf.SetDefault("match.extra_time", false)
-	conf.SetDefault("match.min_subs", 3)
-	conf.SetDefault("match.max_subs", 7)
-	conf.SetDefault("match.min_df", 3)
-	conf.SetDefault("match.max_df", 5)
-	conf.SetDefault("match.max_dm", 3)
-	conf.SetDefault("match.min_mf", 1)
-	conf.SetDefault("match.max_mf", 6)
-	conf.SetDefault("match.max_am", 3)
-	conf.SetDefault("match.min_fw", 0)
-	conf.SetDefault("match.max_fw", 4)
-	conf.SetDefault("match.commentary_file", path.Join(GetConfigDir(), "language.dat"))
-	// conf.SetDefault("bonuses.goal", 30)
-	// conf.SetDefault("bonuses.assist", 21)
-	// conf.SetDefault("bonuses.victory", 30)
-	// conf.SetDefault("bonuses.clean_sheet", 20)
-	// conf.SetDefault("bonuses.key_tackle", 15)
-	// conf.SetDefault("bonuses.key_pass", 12)
-	// conf.SetDefault("bonuses.shot_on_target", 8)
-	// conf.SetDefault("bonuses.shot_off_target", 0)
-	// conf.SetDefault("bonuses.save", 10)
-	// conf.SetDefault("bonuses.own_goal", -10)
-	// conf.SetDefault("bonuses.defeat", -30)
-	// conf.SetDefault("bonuses.conceded", -8)
-	// conf.SetDefault("bonuses.cautioned", -3)
-	// conf.SetDefault("bonuses.sent_off", -10)
-	// legacy support
-	conf.RegisterAlias("games", "name")
-	conf.RegisterAlias("abbreviations", "teams")
-	conf.RegisterAlias("home_bonus", "match.home_bonus")
-	conf.RegisterAlias("extra_time", "match.extra_time")
-	conf.RegisterAlias("min_subs", "match.min_subs")
-	conf.RegisterAlias("bench_size", "match.max_subs")
-	conf.RegisterAlias("min_df", "match.min_df")
-	conf.RegisterAlias("max_df", "match.max_df")
-	conf.RegisterAlias("max_dm", "match.max_dm")
-	conf.RegisterAlias("min_mf", "match.min_mf")
-	conf.RegisterAlias("max_mf", "match.max_mf")
-	conf.RegisterAlias("max_am", "match.max_am")
-	conf.RegisterAlias("min_fw", "match.min_fw")
-	conf.RegisterAlias("max_fw", "match.max_fw")
-	conf.RegisterAlias("bonuses", "abilities")
-	// conf.RegisterAlias("bonuses.save", "abilities.ab_sav")
-	// conf.RegisterAlias("bonuses.goal", "abilities.ab_goal")
-	// conf.RegisterAlias("bonuses.assist", "abilities.ab_assist")
-	// conf.RegisterAlias("bonuses.victory", "abilities.ab_victory_random")
-	// conf.RegisterAlias("bonuses.clean_sheet", "abilities.ab_clean_sheet")
-	// conf.RegisterAlias("bonuses.key_tackle", "abilities.ab_ktk")
-	// conf.RegisterAlias("bonuses.key_pass", "abilities.ab_kps")
-	// conf.RegisterAlias("bonuses.shot_on_target", "abilities.ab_sht_on")
-	// conf.RegisterAlias("bonuses.shot_off_target", "abilities.ab_sht_off")
-	// conf.RegisterAlias("bonuses.own_goal", "abilities.ab_og")
-	// conf.RegisterAlias("bonuses.defeat", "abilities.ab_defeat_random")
-	// conf.RegisterAlias("bonuses.conceded", "abilities.ab_concede")
-	// conf.RegisterAlias("bonuses.cautioned", "abilities.ab_yellow")
-	// conf.RegisterAlias("bonuses.sent_off", "abilities.ab_red")
+	pathsConfig := map[string]string{
+		"config_dir":     exePath,
+		"roster_dir":     exePath,
+		"fixtureset_dir": exePath,
+		"teamsheet_dir":  exePath,
+		"output_dir":     exePath,
+	}
+	conf.SetDefault("paths", pathsConfig)
+	matchConfig := map[string]any{
+		"extra_time":      false,
+		"min_subs":        3,
+		"max_subs":        7,
+		"min_df":          3,
+		"max_df":          5,
+		"max_dm":          3,
+		"min_mf":          1,
+		"max_mf":          6,
+		"max_am":          3,
+		"min_fw":          0,
+		"max_fw":          4,
+		"commentary_file": path.Join(GetConfigDir(), "language.dat"),
+	}
+	conf.SetDefault("match", matchConfig)
+	conf.SetDefault("teams", map[string]string{})
+	conf.SetDefault("managers", map[string]string{})
+	conf.SetDefault("stadiums", map[string]string{})
+	conf.SetDefault("stadium_capacity", map[string]int{})
+	bonusConfig := map[string]int{
+		"home_adv":        100,
+		"goal":            30,
+		"assist":          21,
+		"victory":         30,
+		"clean_sheet":     20,
+		"key_tackle":      15,
+		"key_pass":        12,
+		"shot_on_target":  8,
+		"shot_off_target": 0,
+		"save":            10,
+		"own_goal":        -10,
+		"defeat":          -30,
+		"conceded":        -8,
+		"cautioned":       -3,
+		"sent_off":        -10,
+	}
+	conf.SetDefault("bonuses", bonusConfig)
 }
 
 func LoadNearestLeagueConfig() error {
@@ -147,6 +163,11 @@ func LoadLeagueConfig(filePath string) error {
 				parts := strings.Split(line, "=")
 				if len(parts) == 2 {
 					key := fmt.Sprintf("%s%s", prefix, strings.TrimSpace(parts[0]))
+					alias, ok := configKeyAliases[strings.ToLower(key)]
+					if ok {
+						zap.L().Warn("Setting alias", zap.String("old_key", key), zap.String("new_key", alias))
+						key = alias
+					}
 					value := strings.TrimSpace(parts[1])
 					zap.L().Debug("Setting parsed", zap.String(key, value))
 					if intValue, err := strconv.Atoi(value); err == nil {

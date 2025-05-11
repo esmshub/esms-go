@@ -43,6 +43,10 @@ func (m *AbilityCalculator) VisitTeam(team *MatchTeam) {
 				teamAbs.Goalkeeping = p.GetBaseAbility().Goalkeeping
 			} else if m.tactics != nil {
 				matrix := (*m.tactics)[fmt.Sprintf("%s_%s", team.GetTactic(), p.GetPosition())]
+				if matrix == nil || len(matrix) != 3 {
+					zap.L().Debug("invalid tactic matrix", zap.String("tactic", team.GetTactic()), zap.String("position", p.GetPosition()))
+					matrix = []float64{1, 1, 1}
+				}
 				baseAbs := p.GetBaseAbility()
 				condition := p.GetCondition()
 				playerAbs.Tackling = int((matrix[0] * float64(baseAbs.Tackling)) * condition)

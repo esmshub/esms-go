@@ -64,7 +64,7 @@ func FormatHalfTimeEvent(format string, event *models.MatchEvent) string {
 }
 
 func FormatFullTimeEvent(format string, event *models.MatchEvent) string {
-	return FormatMatchEvent("\nMin. %d :(REF) The referee brings the game to an end with the final whistle.\n%s\n", event, format)
+	return FormatMatchEvent("\nMin. %d :(REF) The referee brings the game to an end with the final whistle.%s\n", event, format)
 }
 
 func FormatScoreEvent(format string, event *models.MatchEvent) string {

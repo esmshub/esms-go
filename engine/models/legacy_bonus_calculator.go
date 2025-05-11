@@ -34,22 +34,22 @@ func (b *MatchBonusCalculator) Apply(result *MatchResult) {
 		for _, p := range t.GetLineup() {
 			abs := p.GetMatchAbility()
 			// shot stopping
-			abs.GoalkeepingAbs = b.getBonus("ab_sav") * p.GetStats().Saves
-			abs.GoalkeepingAbs += b.getBonus("ab_concede") * p.GetStats().Conceded
+			abs.GoalkeepingAbs = b.getBonus("save") * p.GetStats().Saves
+			abs.GoalkeepingAbs += b.getBonus("conceded") * p.GetStats().Conceded
 			// tackling
-			abs.TacklingAbs = b.getBonus("ab_ktk") * p.GetStats().KeyTackles
-			abs.TacklingAbs += b.getBonus("ab_og") * len(p.GetStats().OwnGoals)
+			abs.TacklingAbs = b.getBonus("key_tackle") * p.GetStats().KeyTackles
+			abs.TacklingAbs += b.getBonus("own_goal") * len(p.GetStats().OwnGoals)
 			// passing
-			abs.PassingAbs = b.getBonus("ab_kps") * p.GetStats().KeyPasses
-			abs.PassingAbs += b.getBonus("ab_assist") * p.GetStats().Assists
-			abs.PassingAbs += b.getBonus("ab_og") * len(p.GetStats().OwnGoals)
+			abs.PassingAbs = b.getBonus("key_pass") * p.GetStats().KeyPasses
+			abs.PassingAbs += b.getBonus("assist") * p.GetStats().Assists
+			abs.PassingAbs += b.getBonus("own_goal") * len(p.GetStats().OwnGoals)
 			// shooting
-			abs.ShootingAbs = b.getBonus("ab_goal") * len(p.GetStats().Goals)
-			abs.ShootingAbs += b.getBonus("ab_sht_on") * (p.GetStats().ShotsOffTarget)
-			abs.ShootingAbs += b.getBonus("ab_sht_off") * p.GetStats().ShotsOffTarget
+			abs.ShootingAbs = b.getBonus("goal") * len(p.GetStats().Goals)
+			abs.ShootingAbs += b.getBonus("shot_on_target") * (p.GetStats().ShotsOffTarget)
+			abs.ShootingAbs += b.getBonus("shot_off_target") * p.GetStats().ShotsOffTarget
 
 			if p.GetStats().IsCautioned {
-				cautionedBonus := b.getBonus("ab_yellow")
+				cautionedBonus := b.getBonus("caution")
 				if p.GetPosition() == types.PositionGK {
 					abs.GoalkeepingAbs += cautionedBonus
 				} else {
@@ -59,7 +59,7 @@ func (b *MatchBonusCalculator) Apply(result *MatchResult) {
 				}
 			}
 			if p.GetStats().IsSentOff {
-				sentOffBonus := b.getBonus("ab_red")
+				sentOffBonus := b.getBonus("sent_off")
 				if p.GetPosition() == types.PositionGK {
 					abs.GoalkeepingAbs += sentOffBonus
 				} else {
@@ -86,7 +86,7 @@ func (b *MatchBonusCalculator) Apply(result *MatchResult) {
 
 func (b *MatchBonusCalculator) applyVictoryBonus(team *MatchTeam) {
 	zap.L().Debug("applying victory bonus", zap.String("team", team.GetName()))
-	victoryBonus := b.getBonus("ab_victory_random")
+	victoryBonus := b.getBonus("victory")
 	if victoryBonus == 0 {
 		return
 	}
@@ -109,7 +109,7 @@ func (b *MatchBonusCalculator) applyVictoryBonus(team *MatchTeam) {
 
 func (b *MatchBonusCalculator) applyDefeatBonus(team *MatchTeam) {
 	zap.L().Debug("applying defeat bonus", zap.String("team", team.GetName()))
-	defeatBonus := b.getBonus("ab_defeat_random")
+	defeatBonus := b.getBonus("defeat")
 	if defeatBonus == 0 {
 		return
 	}
@@ -132,7 +132,7 @@ func (b *MatchBonusCalculator) applyDefeatBonus(team *MatchTeam) {
 
 func (b *MatchBonusCalculator) applyCleanSheetBonus(team *MatchTeam) {
 	zap.L().Debug("applying clean sheet bonus", zap.String("team", team.GetName()))
-	cleanSheetBonus := b.getBonus("ab_clean_sheet")
+	cleanSheetBonus := b.getBonus("clean_sheet")
 	if cleanSheetBonus == 0 {
 		return
 	}

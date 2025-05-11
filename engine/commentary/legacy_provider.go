@@ -223,7 +223,18 @@ func (p *LegacyFileCommentaryProvider) write(commentary string) {
 func (p *LegacyFileCommentaryProvider) GetCommentary() []string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
+
+	if len(p.eventMap) == 0 {
+		return []string{}
+	}
 	return p.commentary
+}
+
+func (p *LegacyFileCommentaryProvider) Clear() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.commentary = []string{}
 }
 
 func (p *LegacyFileCommentaryProvider) SetAliases(aliases map[string]string) {
