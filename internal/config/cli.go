@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/esmshub/esms-go/pkg/utils"
 	"go.uber.org/zap"
@@ -15,8 +16,9 @@ func GetConfigDir() string {
 		zap.L().Warn("unable to get the executable path", zap.Error(err))
 		exePath = "." // default to current folder
 	}
+	exeDir := filepath.Dir(exePath)
 
-	path, err := utils.FindAncestorDir(exePath, ConfigFolderName, true)
+	path, err := utils.FindAncestorDir(exeDir, ConfigFolderName, true)
 	if err != nil {
 		zap.L().Warn("an error occurred whilst traversing dir tree", zap.Error(err))
 		return "."
@@ -25,14 +27,14 @@ func GetConfigDir() string {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			zap.L().Warn("unable to get the home directory", zap.Error(err))
-			return exePath
+			return exeDir
 		}
 
 		path, err = utils.FindAncestorDir(homeDir, ConfigFolderName, false)
 		if err != nil {
 			zap.L().Warn("an error occurred reading home directory", zap.Error(err))
 		} else if path == "" {
-			path = exePath
+			path = exeDir
 		}
 
 		return path

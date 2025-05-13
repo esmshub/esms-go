@@ -71,12 +71,13 @@ func init() {
 		zap.L().Warn("unable to get the executable path", zap.Error(err))
 		exePath = "." // default to current folder
 	}
+	exeDir := filepath.Dir(exePath)
 
 	conf := LeagueConfig.(*viper.Viper)
 	conf.SetDefault("name", "ESMS League")
-	conf.SetDefault("paths.roster_dir", exePath)
-	conf.SetDefault("paths.teamsheet_dir", exePath)
-	conf.SetDefault("paths.output_dir", exePath)
+	conf.SetDefault("paths.roster_dir", exeDir)
+	conf.SetDefault("paths.teamsheet_dir", exeDir)
+	conf.SetDefault("paths.output_dir", exeDir)
 	matchConfig := map[string]any{
 		"extra_time":      false,
 		"min_subs":        3,
