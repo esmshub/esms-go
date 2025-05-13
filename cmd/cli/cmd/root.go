@@ -38,7 +38,10 @@ var rootCmd = &cobra.Command{
 wraps the core match engine and supporting utilities that were traditionally separate
 tools.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		logger.Configure(flagVerbose)
+		if flagVerbose {
+			logger.Configure()
+		}
+
 		if cmd.Name() != "help" {
 			printBanner()
 			fmt.Println("Command:", cmd.Short)

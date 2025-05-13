@@ -16,14 +16,14 @@ type MatchBonusCalculator struct {
 func (b *MatchBonusCalculator) getBonus(key string) int {
 	v, exists := b.bonuses[key]
 	if !exists {
-		zap.L().Warn("bonus not set", zap.String("key", key))
+		zap.L().Debug("bonus not set", zap.String("key", key))
 		return 0
 	}
 
 	if result, ok := v.(int); ok {
 		return result
 	} else {
-		zap.L().Warn("bonus not an int", zap.String("key", key))
+		zap.L().Debug("bonus not an int", zap.String("key", key))
 		return 0
 	}
 }
@@ -141,7 +141,7 @@ func (b *MatchBonusCalculator) applyCleanSheetBonus(team *MatchTeam) {
 		return p.GetPosition() == types.PositionGK && p.GetStats().MinutesPlayed > 45
 	})
 	if keeper == nil {
-		zap.L().Warn("no keeper with 45+ minutes played")
+		zap.L().Debug("no keeper with 45+ minutes played")
 		return
 	}
 	// apply bonus to keeper

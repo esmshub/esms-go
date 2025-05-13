@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/esmshub/esms-go/engine/commentary"
@@ -56,10 +55,10 @@ func Run(match *models.Match, options *Options) (*models.MatchResult, error) {
 		}
 	}
 
-	fmt.Println("---------- Kick off ----------")
-	zap.L().Info("Initial Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
-	zap.L().Info("Initial Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
-	zap.L().Info("Before probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
+	// fmt.Println("---------- Kick off ----------")
+	// zap.L().Info("Initial Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
+	// zap.L().Info("Initial Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
+	// zap.L().Info("Before probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
 
 	absCalculator := models.NewAbilityCalculator(
 		options.TacticsMatrix,
@@ -117,7 +116,6 @@ func Run(match *models.Match, options *Options) (*models.MatchResult, error) {
 				}
 
 				flowEvents := flow(team, teams[i^1])
-				zap.L().Debug("Flow events", zap.Any("events", flowEvents))
 
 				utils.EachFunc(flowEvents, func(event events.Event) {
 					eventBus.Publish(models.NewMatchEvent(event, match, team))
@@ -148,25 +146,25 @@ func Run(match *models.Match, options *Options) (*models.MatchResult, error) {
 		}
 	}
 
-	halfTimeStats := stats[0]
-	fmt.Println("---------- Half time ----------")
-	zap.L().Info("Half time stats", zap.Any("stats", halfTimeStats))
-	zap.L().Info("After Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
-	zap.L().Info("After Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
-	zap.L().Info("After Shot probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
+	// halfTimeStats := stats[0]
+	// fmt.Println("---------- Half time ----------")
+	// zap.L().Info("Half time stats", zap.Any("stats", halfTimeStats))
+	// zap.L().Info("After Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
+	// zap.L().Info("After Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
+	// zap.L().Info("After Shot probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
 
-	fullTimeStats := stats[1]
-	fmt.Println("---------- Full time ----------")
-	zap.L().Info("Full time stats", zap.Any("stats", fullTimeStats))
-	zap.L().Info("After Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
-	zap.L().Info("After Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
-	zap.L().Info("After Shot probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
+	// fullTimeStats := stats[1]
+	// fmt.Println("---------- Full time ----------")
+	// zap.L().Info("Full time stats", zap.Any("stats", fullTimeStats))
+	// zap.L().Info("After Team ability", zap.Any("home", match.HomeTeam.GetAbility()))
+	// zap.L().Info("After Team ability", zap.Any("away", match.AwayTeam.GetAbility()))
+	// zap.L().Info("After Shot probability", zap.Any("shot_prob", match.HomeTeam.GetShotProbability()))
 
 	// calc possession
 	homePoss := calcHomePossession(match.HomeTeam, match.AwayTeam)
 	match.HomeTeam.SetPossession(int(homePoss))
 	match.AwayTeam.SetPossession(100 - int(homePoss))
-	zap.L().Info("Home Possession", zap.Any("value", homePoss))
+
 	return &models.MatchResult{
 		HomeTeam: match.HomeTeam,
 		AwayTeam: match.AwayTeam,

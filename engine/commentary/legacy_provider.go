@@ -68,13 +68,12 @@ func (p *LegacyFileCommentaryProvider) Load(filePath string) error {
 
 		evt, evtErr := utils.Substring(trimmed, "[", "]")
 		if evtErr != nil {
-			fmt.Println(fmt.Errorf("unable to parse commentary event: %+v", evtErr))
+			zap.L().Warn("unable to parse commentary event", zap.Error(evtErr))
 			return nil
 		}
 		comm, commsErr := utils.Substring(trimmed, "{", "}")
 		if commsErr != nil {
-			fmt.Println(trimmed)
-			fmt.Println(fmt.Errorf("unable to parse commentary event: %+v", commsErr))
+			zap.L().Warn("unable to parse commentary event", zap.Error(commsErr))
 			return nil
 		}
 		p.eventMap[evt] = append(p.eventMap[evt], comm)
@@ -86,7 +85,7 @@ func (p *LegacyFileCommentaryProvider) Load(filePath string) error {
 func (p *LegacyFileCommentaryProvider) getCommentaryKey(event events.Event) string {
 	data, ok := event.GetData().(map[string]any)
 	if data != nil && !ok {
-		zap.L().Warn("event data is not of type map[string]any", zap.Any("event", event))
+		zap.L().Debug("event data is not of type map[string]any", zap.Any("event", event))
 	}
 
 	eventName := event.GetName()
@@ -208,7 +207,7 @@ func (p *LegacyFileCommentaryProvider) getCommentaryText(key string) string {
 	if len(options) > 0 {
 		return options[rand.Intn(len(options))]
 	} else {
-		zap.L().Warn("no commentary found for key", zap.String("key", key))
+		zap.L().Debug("no commentary found for key", zap.String("key", key))
 	}
 
 	return ""

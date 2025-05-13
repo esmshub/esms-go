@@ -29,12 +29,13 @@ var LeagueConfigSupportedFormats = []string{".yaml", ".json", ".dat"}
 
 const DefaultLeagueConfigFileName = "league"
 const DefaultMatchReportOutputFileExt = ".txt"
+const DefaultCommentaryFileName = "language.dat"
 
 var LeagueConfig Config = viper.New()
 
 var configKeyAliases = map[string]string{
-	"abbreviations":               "teams",
-	"abilities":                   "bonuses",
+	"abbrevations": "teams",
+	// "abilities":                   "bonuses",
 	"abilities.ab_sav":            "bonuses.save",
 	"abilities.ab_goal":           "bonuses.goal",
 	"abilities.ab_assist":         "bonuses.assist",
@@ -52,7 +53,7 @@ var configKeyAliases = map[string]string{
 	"home_bonus":                  "bonuses.home_adv",
 	"games":                       "name",
 	"extra_time":                  "match.extra_time",
-	"min_subs":                    "match.min_subs",
+	"num_substitutions":           "match.min_subs",
 	"bench_size":                  "match.max_subs",
 	"min_df":                      "match.min_df",
 	"max_df":                      "match.max_df",
@@ -67,19 +68,15 @@ var configKeyAliases = map[string]string{
 func init() {
 	exePath, err := os.Executable()
 	if err != nil {
-		zap.L().Error("unable to get current working directory", zap.Error(err))
+		zap.L().Warn("unable to get the executable path", zap.Error(err))
+		exePath = "." // default to current folder
 	}
 
 	conf := LeagueConfig.(*viper.Viper)
 	conf.SetDefault("name", "ESMS League")
-	pathsConfig := map[string]string{
-		"config_dir":     exePath,
-		"roster_dir":     exePath,
-		"fixtureset_dir": exePath,
-		"teamsheet_dir":  exePath,
-		"output_dir":     exePath,
-	}
-	conf.SetDefault("paths", pathsConfig)
+	conf.SetDefault("paths.roster_dir", exePath)
+	conf.SetDefault("paths.teamsheet_dir", exePath)
+	conf.SetDefault("paths.output_dir", exePath)
 	matchConfig := map[string]any{
 		"extra_time":      false,
 		"min_subs":        3,
@@ -92,7 +89,7 @@ func init() {
 		"max_am":          3,
 		"min_fw":          0,
 		"max_fw":          4,
-		"commentary_file": path.Join(GetConfigDir(), "language.dat"),
+		"commentary_file": path.Join(GetConfigDir(), DefaultCommentaryFileName),
 	}
 	conf.SetDefault("match", matchConfig)
 	conf.SetDefault("teams", map[string]string{})
@@ -120,24 +117,11 @@ func init() {
 }
 
 func LoadNearestLeagueConfig() error {
-	// Get the path to the executable
-	exePath, err := os.Executable()
-	if err != nil {
-		zap.L().Warn("unable to get the executable path", zap.Error(err))
-	}
-
-	rootPaths := []string{exePath}
-	if configDir := GetConfigDir(); configDir != "" {
-		rootPaths = append(rootPaths, configDir)
-	}
-	zap.L().Debug("Root paths", zap.Strings("paths", rootPaths))
 	for _, ext := range LeagueConfigSupportedFormats {
-		for _, dir := range rootPaths {
-			configFilePath := filepath.Join(dir, fmt.Sprintf("%s%s", DefaultLeagueConfigFileName, ext))
-			zap.L().Debug("Checking for config file", zap.String("path", configFilePath))
-			if utils.FileExists(configFilePath) {
-				return LoadLeagueConfig(configFilePath)
-			}
+		configFilePath := filepath.Join(GetConfigDir(), fmt.Sprintf("%s%s", DefaultLeagueConfigFileName, ext))
+		zap.L().Debug("Checking for config file", zap.String("path", configFilePath))
+		if utils.FileExists(configFilePath) {
+			return LoadLeagueConfig(configFilePath)
 		}
 	}
 
@@ -156,7 +140,13 @@ func LoadLeagueConfig(filePath string) error {
 		prefix := ""
 		_, err = utils.ReadFile(filePath, func(line string, row int) error {
 			if strings.HasSuffix(line, ":") {
-				prefix = fmt.Sprintf("%s.", strings.ToLower(strings.Trim(line, ":")))
+				rootKey := strings.ToLower(strings.Trim(line, ":"))
+				alias, ok := configKeyAliases[strings.ToLower(rootKey)]
+				if ok {
+					zap.L().Warn("Setting alias", zap.String("old_key", rootKey), zap.String("new_key", alias))
+					rootKey = alias
+				}
+				prefix = fmt.Sprintf("%s.", rootKey)
 			} else if len(strings.TrimSpace(line)) == 0 {
 				prefix = ""
 			} else {

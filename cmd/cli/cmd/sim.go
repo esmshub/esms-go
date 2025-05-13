@@ -7,11 +7,15 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/esmshub/esms-go/engine"
 	"github.com/esmshub/esms-go/engine/commentary"
 	"github.com/esmshub/esms-go/engine/models"
 	"github.com/esmshub/esms-go/internal/config"
+	"github.com/esmshub/esms-go/internal/formatters"
 	"github.com/esmshub/esms-go/internal/store"
 	"github.com/esmshub/esms-go/pkg/utils"
 	"github.com/spf13/cobra"
@@ -22,6 +26,12 @@ var (
 	fixtureSetFilePath string
 	tacticsFilePath    string
 	rngSeed            uint64
+	contentStyle       = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFF"))
+		// Background(lipgloss.Color("#000000")).
+
+	headerStyle   = contentStyle.Foreground(lipgloss.Color("#0f0"))
+	teamNameStyle = contentStyle.Foreground(lipgloss.Color("#0FF"))
 )
 
 // runCmd represents the run command
@@ -110,14 +120,14 @@ be enabled this fixture set only.
 		fixtureSet := utils.Must(config.LoadFixtureset(fixtureSetFilePath))
 		if fixtureSet.OverrideSettings != nil {
 			zap.L().Debug("applying override settings", zap.Any("settings", maps.Keys(fixtureSet.OverrideSettings)))
-			err := config.LeagueConfig.MergeConfigMap(fixtureSet.OverrideSettings)
+			err := config.MergeWithDefaults(fixtureSet.OverrideSettings)
 			if err != nil {
 				zap.L().Warn("unable to apply override settings", zap.Error(err))
 			}
 		}
 
 		if tacticsFilePath == "" {
-			tacticsFilePath = filepath.Join(config.LeagueConfig.GetString("paths.config_dir"), config.DefaultTacticsMatrixFileName)
+			tacticsFilePath = filepath.Join(config.GetConfigDir(), config.DefaultTacticsMatrixFileName)
 		}
 
 		zap.L().Info("Reading tactics matrix", zap.String("path", tacticsFilePath))
@@ -138,6 +148,28 @@ be enabled this fixture set only.
 			CommentaryProvider: commsProvider,
 		}
 
+		t := table.New().
+			Headers(fmt.Sprintf("%s RESULTS", strings.ToUpper(fixtureSet.Name))).
+			// BorderHeader(false).
+			Border(lipgloss.HiddenBorder()).
+			// Border(lipgloss.RoundedBorder()).
+			// BorderStyle(lipgloss.NewStyle().Background(lipgloss.Color("#000"))).
+			// BorderColumn(false).
+			// BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240")))
+			// BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				if row == -1 {
+					return headerStyle
+				} else if col != 1 {
+					return teamNameStyle
+				}
+
+				return contentStyle
+			}).
+			Rows([]string{})
+		fmtScorerOpts := formatters.FormatScorersOptions{
+			RowDelimiter: "\n",
+		}
 		for fid, f := range fixtureSet.Fixtures {
 			// resolve config paths
 			if f.HomeTeamCode != "" {
@@ -175,12 +207,29 @@ be enabled this fixture set only.
 			zap.L().Info(fmt.Sprintf("running fixture %d of %d", fid+1, len(fixtureSet.Fixtures)))
 			result, err := engine.Run(match, opts)
 			if err != nil {
-				return err
+				zap.L().Panic("unable to run match", zap.Error(err))
 			}
+
+			homeGoals := result.HomeTeam.GetStats().Goals
+			awayGoals := result.AwayTeam.GetStats().Goals
+
+			homeStyle := teamNameStyle.Padding(0, 0)
+			awayStyle := homeStyle
+			if len(homeGoals) > len(awayGoals) {
+				homeStyle = homeStyle.Foreground(lipgloss.Color("#FF0"))
+			} else if len(homeGoals) < len(awayGoals) {
+				awayStyle = homeStyle.Foreground(lipgloss.Color("#FF0"))
+			}
+
+			t.Row(
+				fmt.Sprintf("%s\n%s", homeStyle.Render(strings.ToUpper(result.HomeTeam.GetName())), contentStyle.Padding(0, 0).Render(formatters.FormatScorers(homeGoals, fmtScorerOpts))),
+				fmt.Sprintf("%d-%d", len(homeGoals), len(awayGoals)),
+				fmt.Sprintf("%s\n%s", awayStyle.Render(strings.ToUpper(result.AwayTeam.GetName())), contentStyle.Padding(0, 0).Render(formatters.FormatScorers(awayGoals, fmtScorerOpts))),
+			)
+			t.Row()
 
 			// apply bonuses
 			bonusConfig := config.LeagueConfig.GetStringMap("bonuses")
-			fmt.Println(bonusConfig)
 			if bonusConfig != nil {
 				models.NewMatchBonusCalculator(bonusConfig).Apply(result)
 			} else {
@@ -202,8 +251,8 @@ be enabled this fixture set only.
 			if err != nil {
 				zap.L().Error("unable to save match result", zap.Error(err))
 			}
-			fmt.Println("------------------------------")
 		}
+		fmt.Println(t.Render())
 		return nil
 	},
 }

@@ -7,14 +7,13 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/esmshub/esms-go/engine/models"
+	"github.com/esmshub/esms-go/internal/formatters"
 	"github.com/esmshub/esms-go/pkg/utils"
 	"go.uber.org/zap"
-	"golang.org/x/exp/maps"
 )
 
 type MatchResultFileStoreOptions struct {
@@ -68,7 +67,7 @@ func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentar
 		if i < len(homeSubs) {
 			hs = fmt.Sprintf("%s SUB", homeSubs[i].GetName())
 		}
-		if i < len(homeSubs) {
+		if i < len(awaySubs) {
 			as = fmt.Sprintf("SUB %s", awaySubs[i].GetName())
 		}
 		lines = append(lines, fmt.Sprintf("%37s  |  %s", hs, as))
@@ -93,8 +92,13 @@ func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentar
 		lines = append(lines, t.GetName()+" Match Info")
 		lines = append(lines, strings.Repeat("-", 91))
 		// TODO: MoM
-		lines = append(lines, fmt.Sprintf("%-22s: %s %s", "Best player", "Ronaldo", "(Man of the Match)"))
-		lines = append(lines, fmt.Sprintf("%-22s: %s", "Scorers", mr.formatScorers(t.GetStats().Goals)))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Best player", "N/A"))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Scorers", formatters.FormatScorers(t.GetStats().Goals, formatters.FormatScorersOptions{
+			RowDelimiter:         ", ",
+			NoResultsPlaceholder: "N/A",
+		})))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Yellow Cards", "N/A"))
+		lines = append(lines, fmt.Sprintf("%-22s: %s", "Red Cards", "N/A"))
 		lines = append(lines, fmt.Sprintf("%-22s: %s", "Sent Off", "N/A"))
 		lines = append(lines, fmt.Sprintf("%-22s: %s", "Booked", "N/A"))
 		lines = append(lines, fmt.Sprintf("%-22s: %s", "Injured", "N/A"))
@@ -176,24 +180,9 @@ func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentar
 	return nil
 }
 
-func (mr *MatchResultFileStore) formatScorers(scorers []models.MatchGoal) string {
-	if len(scorers) == 0 {
-		return "N/A"
-	}
-	// Group scorers by name and minute
-	scorersByMinute := utils.Reduce(scorers, func(acc map[string][]int, g models.MatchGoal) map[string][]int {
-		name := g.Player.GetName()
-		if _, ok := acc[name]; !ok {
-			acc[name] = []int{}
-		}
-		acc[name] = append(acc[name], g.Minute)
-		return acc
-	}, map[string][]int{})
-	return strings.Join(utils.Map(maps.Keys(scorersByMinute), func(name string) string {
-		return fmt.Sprintf("%s (%s)", name, strings.Join(utils.Map(scorersByMinute[name], strconv.Itoa), ","))
-	}), ", ")
-}
-
+// saveAsYaml saves a MatchResult to a file in YAML format.
+//
+// NOTE: This is not yet implemented.
 func (mr *MatchResultFileStore) saveAsYaml(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	return errors.ErrUnsupported
 }

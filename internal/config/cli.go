@@ -4,31 +4,19 @@ import (
 	"os"
 
 	"github.com/esmshub/esms-go/pkg/utils"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 const ConfigFolderName = ".esms"
 
-var Cli Config = viper.New()
-
-func init() {
+func GetConfigDir() string {
 	exePath, err := os.Executable()
 	if err != nil {
-		zap.L().Error("unable to get current working directory", zap.Error(err))
-	}
-	conf := Cli.(*viper.Viper)
-	conf.SetDefault("paths.config_dir", exePath)
-}
-
-func GetConfigDir() string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		zap.L().Warn("unable to get the current directory", zap.Error(err))
-		return "." // default to current folder
+		zap.L().Warn("unable to get the executable path", zap.Error(err))
+		exePath = "." // default to current folder
 	}
 
-	path, err := utils.FindAncestorDir(cwd, ConfigFolderName, true)
+	path, err := utils.FindAncestorDir(exePath, ConfigFolderName, true)
 	if err != nil {
 		zap.L().Warn("an error occurred whilst traversing dir tree", zap.Error(err))
 		return "."
@@ -37,14 +25,14 @@ func GetConfigDir() string {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			zap.L().Warn("unable to get the home directory", zap.Error(err))
-			return "."
+			return exePath
 		}
 
 		path, err = utils.FindAncestorDir(homeDir, ConfigFolderName, false)
 		if err != nil {
 			zap.L().Warn("an error occurred reading home directory", zap.Error(err))
 		} else if path == "" {
-			return "."
+			path = exePath
 		}
 
 		return path

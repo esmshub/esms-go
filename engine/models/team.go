@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"sync"
 
@@ -27,8 +28,10 @@ type TeamStats struct {
 }
 
 type MatchGoal struct {
-	Player *MatchPlayer
-	Minute int
+	Player    *MatchPlayer
+	IsOwnGoal bool
+	IsPenalty bool
+	Minute    int
 }
 
 type TeamConfig struct {
@@ -104,30 +107,18 @@ type MatchTeam struct {
 }
 
 func (t *MatchTeam) GetShortName() string {
-	t.mut.RLock()
-	defer t.mut.RUnlock()
-
 	return t.config.Code
 }
 
 func (t *MatchTeam) GetName() string {
-	t.mut.RLock()
-	defer t.mut.RUnlock()
-
 	return t.config.Name
 }
 
 func (t *MatchTeam) GetManagerName() string {
-	t.mut.RLock()
-	defer t.mut.RUnlock()
-
 	return t.config.ManagerName
 }
 
 func (t *MatchTeam) GetStadiumName() string {
-	t.mut.RLock()
-	defer t.mut.RUnlock()
-
 	return t.config.StadiumName
 }
 
@@ -189,6 +180,9 @@ func (t *MatchTeam) AddGoal(player *MatchPlayer, minute int) {
 	t.stats.Goals = append(t.stats.Goals, MatchGoal{
 		Player: player,
 		Minute: minute,
+		IsOwnGoal: !slices.ContainsFunc(t.config.Players, func(p *MatchPlayer) bool {
+			return p == player
+		}),
 	})
 }
 

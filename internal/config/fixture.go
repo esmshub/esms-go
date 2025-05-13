@@ -51,12 +51,12 @@ func LoadTeamConfig(teamsheetFile, rosterFile string) (*models.TeamConfig, error
 		return roster[i]
 	}
 
-	zap.L().Info("reading teamsheet file", zap.String("path", teamsheetFile))
+	zap.L().Info("reading teamsheet", zap.String("path", teamsheetFile))
 	var config *models.TeamConfig
 	if filepath.Ext(teamsheetFile) == ".txt" {
 		// load legacy teamsheet
 		config, err = LoadLegacyTeamsheet(teamsheetFile, findPlayer)
-		if config.Code == "" {
+		if err == nil && config.Code == "" {
 			config.Code = strings.TrimSuffix(filepath.Base(teamsheetFile), DefaultTeamsheetFileExt)
 		}
 	} else {
