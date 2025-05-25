@@ -1,0 +1,8 @@
+name: Sample League - Round 1
+fixtures:
+  - home_team: tta
+    away_team: ttb
+  - home_team: ttd
+    away_team: ttc
+  - home_team: tte
+    away_team: ttf

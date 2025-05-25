@@ -12,7 +12,7 @@ type Fixtureset struct {
 	Fixtures         []*Fixture
 }
 
-func LoadFixtureset[T any](path string) (*T, error) {
+func LoadFixtureset(path string) (*Fixtureset, error) {
 	v := viper.New()
 	v.SetConfigFile(path)
 	err := v.ReadInConfig() // Find and read the config file
@@ -20,7 +20,27 @@ func LoadFixtureset[T any](path string) (*T, error) {
 		panic(fmt.Errorf("error loading fixtureset: %w", err))
 	}
 
-	var conf T
+	var conf Fixtureset
 	v.Unmarshal(&conf)
-	return &conf, nil
+	return &conf, validateFixtureset(&conf)
+}
+
+func validateFixtureset(fs *Fixtureset) error {
+	if fs.Name == "" {
+		return fmt.Errorf("fixtureset name is required")
+	}
+
+	if len(fs.Fixtures) == 0 {
+		return fmt.Errorf("fixtureset must have at least one fixture")
+	}
+
+	for _, f := range fs.Fixtures {
+		if f.HomeTeamCode == "" && f.HomeTeamsheet == "" {
+			return fmt.Errorf("fixture must have either home_teamsheet or home_team set")
+		}
+		if f.AwayTeamCode == "" && f.AwayTeamsheet == "" {
+			return fmt.Errorf("fixture must have either away_teamsheet or away_team set")
+		}
+	}
+	return nil
 }

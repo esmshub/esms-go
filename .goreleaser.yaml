@@ -1,0 +1,56 @@
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy && git diff --exit-code go.mod go.sum
+    - go mod download && go mod verify
+    # you may remove this if you don't need go generate
+    # - go generate ./...
+
+builds:
+  - main: ./cmd/cli
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - 386
+    binary: >-
+      {{ replace .ProjectName "-" "" }}
+    env:
+      - CGO_ENABLED=0
+    ignore:
+      - goos: darwin
+        goarch: 386
+      - goos: linux
+        goarch: 386
+
+archives:
+  - formats: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ replace .ProjectName "-" "" }}_{{ .Version }}_
+      {{- tolower .Os }}_{{ .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - samples/**
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        formats: zip
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  version_template: "{{ incpatch .Version }}-{{ .Branch }}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+release:
+  prerelease: auto
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

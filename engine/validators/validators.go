@@ -128,7 +128,6 @@ func (v *TeamConfigValidator) Validate(team *models.MatchTeam) error {
 }
 
 func NewTeamConfigValidator(config map[string]any) Validator {
-	zap.L().Info("config", zap.Any("config", config))
 	return &TeamConfigValidator{
 		supportedTactics:   types.ValidTactics,
 		supportedPositions: types.ValidPositions,

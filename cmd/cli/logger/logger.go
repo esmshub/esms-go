@@ -1,20 +1,31 @@
 package logger
 
 import (
+	"os"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func Configure(verbose bool) {
+func Configure() {
 	conf := zap.NewDevelopmentConfig()
-	conf.DisableCaller = !verbose
-	conf.DisableStacktrace = !verbose
-	if !verbose {
-		conf.EncoderConfig.TimeKey = ""
-		conf.Level.SetLevel(zapcore.InfoLevel)
+	level := zap.NewAtomicLevel()
+	logLevel := os.Getenv("LOG_LEVEL")
+	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+		level.SetLevel(zapcore.WarnLevel) // default
 	}
-
+	isDebug := level.Level() == zap.DebugLevel
+	if !isDebug {
+		conf.DisableCaller = true
+		conf.DisableStacktrace = true
+		conf.EncoderConfig.TimeKey = ""
+	}
+	conf.Level.SetLevel(level.Level())
+	// conf.EncoderConfig.EncodeLevel = func(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	// 	if l != zapcore.InfoLevel || verbose {
+	// 		zapcore.CapitalColorLevelEncoder(l, enc)
+	// 	}
+	// }
 	conf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-
 	zap.ReplaceGlobals(zap.Must(conf.Build()))
 }

@@ -20,16 +20,16 @@ func readTactic(config *models.TeamConfig, text string) error {
 	}
 
 	if len(lines) > 1 {
-		config.Code = lines[0]
-		config.Tactic = lines[1]
+		config.Code = strings.ToLower(lines[0])
+		config.Tactic = strings.ToUpper(lines[1])
 	} else {
-		config.Tactic = lines[0]
+		config.Tactic = strings.ToUpper(lines[0])
 	}
 
 	return nil
 }
 
-func parsePlayer(text string, playerIndex int, isSub bool, findPlayer func(string) *models.Player) (*models.MatchPlayer, error) {
+func parsePlayer(text string, findPlayer func(string) *models.Player) (*models.MatchPlayer, error) {
 	parts := strings.Fields(text)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("player data format '%s' is not valid", text)
@@ -58,8 +58,8 @@ func readLineup(config *models.TeamConfig, text string, findPlayer func(string) 
 	zap.L().Debug("reading lineup")
 
 	lines := strings.Split(text, "\n")
-	for idx, record := range lines {
-		player, err := parsePlayer(strings.TrimSpace(record), idx+1, false, findPlayer)
+	for _, record := range lines {
+		player, err := parsePlayer(strings.TrimSpace(record), findPlayer)
 		if err != nil {
 			return err
 		}
@@ -74,8 +74,8 @@ func readSubstitutions(config *models.TeamConfig, text string, minSubs int, maxS
 	zap.L().Debug("reading subs")
 
 	lines := strings.Split(text, "\n")
-	for idx, record := range lines {
-		player, err := parsePlayer(strings.TrimSpace(record), idx+1, true, findPlayer)
+	for _, record := range lines {
+		player, err := parsePlayer(strings.TrimSpace(record), findPlayer)
 		if err != nil {
 			return err
 		}
@@ -141,7 +141,7 @@ func readConditionals(config *models.TeamConfig, text string) error {
 }
 
 func LoadLegacyTeamsheet(teamsheetFile string, findPlayer func(string) *models.Player) (*models.TeamConfig, error) {
-	zap.L().Info("reading teamsheet file", zap.String("file", teamsheetFile))
+	zap.L().Debug("reading teamsheet", zap.String("path", teamsheetFile))
 	data, err := os.ReadFile(teamsheetFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read teamsheet: %w", err)
@@ -175,6 +175,7 @@ func LoadLegacyTeamsheet(teamsheetFile string, findPlayer func(string) *models.P
 	if err := readSubstitutions(config, sections[2], LeagueConfig.GetInt("match.min_subs"), LeagueConfig.GetInt("match.max_subs"), findPlayer); err != nil {
 		return nil, err
 	}
+
 	if err := readPenaltyTaker(config, sections[3]); err != nil {
 		return nil, err
 	}

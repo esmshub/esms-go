@@ -1,0 +1,57 @@
+paths:
+  teamsheet_dir: ./sheets
+  roster_dir: ./rosters
+  output_dir: ./reports
+bonuses:
+  home_adv: 400
+  goal: 30
+  assist: 21
+  victory: 30
+  clean_sheet: 20
+  key_tackle: 15
+  key_pass: 12
+  shot_on_target: 8
+  shot_off_target: 0
+  save: 10
+  own_goal: -10
+  defeat: -30
+  conceded: -8
+  cautioned: -3
+  sent_off: -10
+teams:
+  tta:
+    name: Test Team A
+    manager: Manager A
+    stadium:
+      name: Stadium A
+      capacity: 60000
+  ttb:
+    name: Test Team B
+    manager: Manager B
+    stadium:
+      name: Stadium B
+      capacity: 60000
+  ttc:
+    name: Test Team C
+    manager: Manager C
+    stadium:
+      name: Stadium C
+      capacity: 60000
+  ttd:
+    name: Test Team D
+    manager: Manager D
+    stadium:
+      name: Stadium D
+      capacity: 60000
+  tte:
+    name: Test Team E
+    manager: Manager E
+    stadium:
+      name: Stadium E
+      capacity: 60000
+  ttf:
+    name: Test Team F
+    manager: Manager F
+    stadium:
+      name: Stadium F
+      capacity: 60000
