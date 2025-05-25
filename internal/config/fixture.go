@@ -69,29 +69,35 @@ func LoadTeamConfig(teamsheetFile, rosterFile string) (*models.TeamConfig, error
 	}
 
 	teamsMap := LeagueConfig.GetStringMap("teams")
-	teamName, nameOk := teamsMap[config.Code].(string)
-	if !nameOk {
+	teamName, ok := teamsMap[config.Code].(map[string]any)
+	if !ok {
 		return nil, fmt.Errorf("teams.%s config not set", config.Code)
 	}
-	config.Name = teamName
-	managersMap := LeagueConfig.GetStringMap("managers")
-	managerName, managerOk := managersMap[config.Code].(string)
-	if !managerOk {
-		return nil, fmt.Errorf("managers.%s config not set", config.Code)
+
+	var nameOk bool
+	if config.Name, nameOk = teamName["name"].(string); !nameOk {
+		return nil, fmt.Errorf("teams.%s.name config not set", config.Code)
 	}
-	config.ManagerName = managerName
-	stadiumsMap := LeagueConfig.GetStringMap("stadiums")
-	stadiumName, stadiumOk := stadiumsMap[config.Code].(string)
+
+	var managerOk bool
+	if config.ManagerName, managerOk = teamName["manager"].(string); !managerOk || len(config.ManagerName) == 0 {
+		return nil, fmt.Errorf("teams.%s.manager config not set", config.Code)
+	}
+
+	stadiumMap, stadiumOk := teamName["stadium"].(map[string]any)
 	if !stadiumOk {
-		return nil, fmt.Errorf("stadiums.%s config not set", config.Code)
+		return nil, fmt.Errorf("teams.%s.stadium config not set", config.Code)
 	}
-	config.StadiumName = stadiumName
-	stadiumCapMap := LeagueConfig.GetStringMap("capacities")
-	stadiumCap, stadiumCapOk := stadiumCapMap[config.Code].(int)
-	if !stadiumCapOk {
-		return nil, fmt.Errorf("capacities.%s config not set", config.Code)
+
+	var stadiumNameOk bool
+	if config.StadiumName, stadiumNameOk = stadiumMap["name"].(string); !stadiumNameOk {
+		return nil, fmt.Errorf("teams.%s.stadium.name config not set", config.Code)
 	}
-	config.StadiumCapacity = stadiumCap
+
+	var stadiumCapacityOk bool
+	if config.StadiumCapacity, stadiumCapacityOk = stadiumMap["capacity"].(int); !stadiumCapacityOk {
+		return nil, fmt.Errorf("teams.%s.stadium.capacity config not set", config.Code)
+	}
 
 	return config, nil
 }

@@ -44,10 +44,10 @@ build-all:
 	@$(MAKE) GOOS=darwin build
 
 win:
-	@$(MAKE) FILE_EXT=.exe GOOS=windows build package
+	@$(MAKE) GOOS=windows build package
 
 win32:
-	@$(MAKE) FILE_EXT=.exe GOOS=windows GOARCH=386 build package
+	@$(MAKE) GOOS=windows GOARCH=386 build package
 
 linux:
 	@$(MAKE) GOOS=linux build package

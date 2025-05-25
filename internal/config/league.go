@@ -91,6 +91,7 @@ func init() {
 		"min_fw":          0,
 		"max_fw":          4,
 		"commentary_file": path.Join(GetConfigDir(), DefaultCommentaryFileName),
+		"tactics_file":    path.Join(GetConfigDir(), DefaultTacticsMatrixFileName),
 	}
 	conf.SetDefault("match", matchConfig)
 	conf.SetDefault("teams", map[string]string{})

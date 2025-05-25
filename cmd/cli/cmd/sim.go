@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"maps"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -69,11 +70,8 @@ fixtures.json
 }
 ----------------------------
 
-If a tactics matrix file is provided, appropriate bonuses will be applied otherwise, no 
-tactical bonuses are used. If no '-c/--config-file' flag is provided, the nearest valid 
-config file will be loaded.
-
-Configuration settings can overridden at fixture set level by declaring an 'override_settings' block
+If no '-c/--config-file' flag is provided, the nearest valid config file will be loaded. 
+Configuration settings can be overridden at fixture set level by declaring an 'override_settings' block
 in the fixture set file. This block should be a map of config settings, for example:
 
 config.yml
@@ -99,6 +97,9 @@ override_settings:
 
 In the above example, teamsheets will be read from /cup/teamsheets and extra time will 
 be enabled this fixture set only.
+
+If a tactics matrix file is provided, appropriate bonuses will be applied otherwise, no 
+tactical bonuses are used.
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configFilePath, err := cmd.Flags().GetString("config-file")
@@ -127,7 +128,7 @@ be enabled this fixture set only.
 		}
 
 		if tacticsFilePath == "" {
-			tacticsFilePath = filepath.Join(config.GetConfigDir(), config.DefaultTacticsMatrixFileName)
+			tacticsFilePath = config.LeagueConfig.GetString("match.tactics_file")
 		}
 
 		zap.L().Info("Reading tactics matrix", zap.String("path", tacticsFilePath))
@@ -135,6 +136,7 @@ be enabled this fixture set only.
 		if err != nil {
 			zap.L().Warn("unable to load tactics matrix", zap.Error(err))
 		}
+
 		zap.L().Info("Reading commentary file", zap.String("path", config.LeagueConfig.GetString("match.commentary_file")))
 		commsProvider := commentary.NewLegacyFileCommentaryProvider()
 		if err := commsProvider.Load(config.LeagueConfig.GetString("match.commentary_file")); err != nil {
@@ -253,6 +255,14 @@ be enabled this fixture set only.
 			}
 		}
 		fmt.Println(t.Render())
+		outputDir := config.LeagueConfig.GetString("paths.output_dir")
+		if !path.IsAbs(outputDir) {
+			outputDir, err = filepath.Abs(outputDir)
+			if err != nil {
+				zap.L().Error("unable to resolve output directory", zap.Error(err))
+			}
+		}
+		fmt.Println("Match results saved to", outputDir)
 		return nil
 	},
 }
@@ -260,11 +270,11 @@ be enabled this fixture set only.
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.Flags().StringVarP(&fixtureSetFilePath, "fixture-set", "f", "", "Path to fixture set file")
+	runCmd.Flags().StringVarP(&fixtureSetFilePath, "fixtureset", "f", "", "Path to fixture set file")
 	runCmd.Flags().Uint64VarP(&rngSeed, "rng-seed", "s", 0, "Seed for random number generator")
 	runCmd.Flags().StringVarP(&tacticsFilePath, "tactics", "t", "", "Path to tactics matrix file")
 
-	runCmd.MarkFlagRequired("fixture-set")
+	runCmd.MarkFlagRequired("fixtureset")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

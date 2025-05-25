@@ -26,6 +26,12 @@ type MatchResultFileStore struct{}
 
 func (mr *MatchResultFileStore) saveAsText(result *models.MatchResult, commentary []string, options MatchResultFileStoreOptions) error {
 	zap.L().Info("saving match result as text", zap.String("file", options.OutputFile))
+
+	// Ensure the parent directory exists
+	err := os.MkdirAll(filepath.Dir(options.OutputFile), 0755)
+	if err != nil {
+		return err
+	}
 	// Open the file in write mode. If the file doesn't exist, it will be created.
 	file, err := os.Create(options.OutputFile)
 	if err != nil {
